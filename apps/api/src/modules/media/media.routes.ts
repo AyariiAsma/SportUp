@@ -87,6 +87,14 @@ export async function mediaRoutes(app: FastifyInstance) {
       return reply.status(404).send({ success: false, message: 'File not found' });
     }
 
-    return reply.sendFile(filePath);
+    const ext = path.extname(filePath).toLowerCase();
+    const mimeTypes: Record<string, string> = {
+      '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+      '.webp': 'image/webp', '.gif': 'image/gif',
+      '.mp4': 'video/mp4', '.mov': 'video/quicktime', '.webm': 'video/webm',
+    };
+
+    reply.header('Content-Type', mimeTypes[ext] ?? 'application/octet-stream');
+    return reply.send(fs.createReadStream(filePath));
   });
 }

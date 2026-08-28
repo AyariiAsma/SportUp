@@ -197,11 +197,11 @@ export async function eventRoutes(app: FastifyInstance) {
         status: 'PUBLISHED',
         route: routeCoordinates && routeCoordinates.length > 0 ? {
           create: {
-            points: routeCoordinates.map((pt, idx) => ({ ...pt, order: idx })),
+            points: routeCoordinates.map((pt: Record<string, unknown>, idx: number) => ({ ...pt, order: idx })),
             distanceKm: eventData.distanceKm,
           }
         } : undefined,
-      },
+      } as any,
       include: {
         sport: true,
         organizer: { select: { id: true, name: true, username: true, avatar: true } },
@@ -232,7 +232,7 @@ export async function eventRoutes(app: FastifyInstance) {
         await prisma.eventRoute.create({
           data: {
             eventId: id,
-            points: routeCoordinates.map((pt, idx) => ({ ...pt, order: idx })),
+            points: routeCoordinates.map((pt: Record<string, unknown>, idx: number) => ({ ...pt, order: idx })),
             distanceKm: eventData.distanceKm,
           }
         });
@@ -245,7 +245,7 @@ export async function eventRoutes(app: FastifyInstance) {
         ...eventData,
         startAt: eventData.startAt ? new Date(eventData.startAt) : undefined,
         endAt: eventData.endAt ? new Date(eventData.endAt) : undefined,
-      },
+      } as any,
       include: {
         sport: true,
         organizer: { select: { id: true, name: true, username: true, avatar: true } },
