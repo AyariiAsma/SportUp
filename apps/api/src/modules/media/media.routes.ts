@@ -65,7 +65,7 @@ export async function mediaRoutes(app: FastifyInstance) {
     // Save media record
     const media = await prisma.media.create({
       data: {
-        url: `/uploads/${subDir}/${filename}`,
+        url: `/media/uploads/${subDir}/${filename}`,
         type: isImage ? 'IMAGE' : 'VIDEO',
         mimeType,
         sizeBytes: buffer.length,

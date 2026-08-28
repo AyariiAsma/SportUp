@@ -6,6 +6,7 @@ import { updateProfileSchema, type UpdateProfileInput } from '@sportup/shared';
 import { theme } from '../../../src/theme';
 import { Button } from '../../../src/components/common/Button';
 import { TextInput } from '../../../src/components/common/TextInput';
+import { AddressSelector } from '../../../src/components/common/AddressSelector';
 import { useAuthStore } from '../../../src/stores/auth.store';
 import { api } from '../../../src/services/api';
 import { useState } from 'react';
@@ -15,13 +16,15 @@ export default function EditProfileScreen() {
   const { user, setUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
 
-  const { control, handleSubmit, formState: { errors } } = useForm<UpdateProfileInput>({
+  const { control, handleSubmit, formState: { errors }, watch, setValue } = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
     defaultValues: {
       name: user?.name || '',
       username: user?.username || '',
       bio: user?.bio || '',
+      region: user?.region || '',
       city: user?.city || '',
+      locality: user?.locality || '',
     }
   });
 
@@ -107,15 +110,17 @@ export default function EditProfileScreen() {
 
             <Controller
               control={control}
-              name="city"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <TextInput
-                  label="City"
-                  placeholder="e.g. La Marsa"
-                  onBlur={onBlur}
-                  onChangeText={onChange}
-                  value={value}
-                  error={errors.city?.message}
+              name="region"
+              render={({ field: { onChange, value } }) => (
+                <AddressSelector
+                  initialRegion={value}
+                  initialCity={watch('city')}
+                  initialLocality={watch('locality')}
+                  onChange={(region, city, locality) => {
+                    setValue('region', region, { shouldValidate: true });
+                    setValue('city', city, { shouldValidate: true });
+                    setValue('locality', locality, { shouldValidate: true });
+                  }}
                 />
               )}
             />

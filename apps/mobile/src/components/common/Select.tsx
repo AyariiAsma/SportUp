@@ -173,6 +173,9 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.bold,
     fontSize: theme.typography.size.md,
   },
+  closeButton: {
+    padding: theme.spacing.sm,
+  },
   listContainer: {
     padding: theme.spacing.md,
   },

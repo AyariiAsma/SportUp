@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { prisma } from '../../prisma/client';
-import { createPostSchema, createCommentSchema } from '@sportup/shared';
+import { createPostSchema, updatePostSchema, createCommentSchema } from '@sportup/shared';
 
 export async function postRoutes(app: FastifyInstance) {
   // ─── Feed ──────────────────────────────────────────────
@@ -29,6 +29,11 @@ export async function postRoutes(app: FastifyInstance) {
           },
           media: true,
           _count: { select: { likes: true, comments: true } },
+          tags: {
+            include: {
+              user: { select: { id: true, name: true, username: true } },
+            },
+          },
         },
       }),
       prisma.post.count({ where: { isPublic: true } }),
@@ -83,12 +88,20 @@ export async function postRoutes(app: FastifyInstance) {
         authorId,
         content: body.content,
         category: body.category,
+        tags: body.tags && body.tags.length > 0 ? {
+          create: body.tags.map(userId => ({ userId }))
+        } : undefined,
       },
       include: {
         author: {
           select: { id: true, name: true, username: true, avatar: true },
         },
         media: true,
+        tags: {
+          include: {
+            user: { select: { id: true, name: true, username: true } },
+          },
+        },
       },
     });
 
@@ -115,6 +128,11 @@ export async function postRoutes(app: FastifyInstance) {
           select: { id: true, name: true, username: true, avatar: true },
         },
         media: true,
+        tags: {
+          include: {
+            user: { select: { id: true, name: true, username: true } },
+          },
+        },
         _count: { select: { likes: true, comments: true } },
       },
     });
@@ -152,11 +170,39 @@ export async function postRoutes(app: FastifyInstance) {
     return reply.send({ success: true, message: 'Post deleted' });
   });
 
+  // ─── Edit Post ─────────────────────────────────────────
+
+  app.put('/:id', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const { id: userId } = request.user as { id: string };
+    const body = updatePostSchema.parse(request.body);
+
+    const post = await prisma.post.findUnique({ where: { id } });
+    if (!post) {
+      return reply.status(404).send({ success: false, message: 'Post not found' });
+    }
+    if (post.authorId !== userId) {
+      return reply.status(403).send({ success: false, message: 'Not authorized' });
+    }
+
+    const updated = await prisma.post.update({
+      where: { id },
+      data: {
+        content: body.content !== undefined ? body.content : undefined,
+        category: body.category !== undefined ? body.category : undefined,
+      },
+    });
+
+    return reply.send({ success: true, data: updated });
+  });
+
   // ─── Like Post ─────────────────────────────────────────
 
   app.post('/:id/like', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id: postId } = request.params as { id: string };
     const { id: userId } = request.user as { id: string };
+
+    const liker = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
 
     try {
       await prisma.like.create({
@@ -170,11 +216,11 @@ export async function postRoutes(app: FastifyInstance) {
           data: {
             userId: post.authorId,
             type: 'POST_LIKED',
-            title: 'Post Liked',
-            body: 'Someone liked your post',
+            title: '❤️ Post Liked',
+            body: `${liker?.name || 'Someone'} liked your post!`,
             data: { postId, userId },
           },
-        });
+        }).catch(() => {});
       }
     } catch {
       // Already liked
@@ -213,6 +259,14 @@ export async function postRoutes(app: FastifyInstance) {
           author: {
             select: { id: true, name: true, username: true, avatar: true },
           },
+          replies: {
+            include: {
+              author: {
+                select: { id: true, name: true, username: true, avatar: true },
+              },
+            },
+            orderBy: { createdAt: 'asc' },
+          },
         },
       }),
       prisma.comment.count({ where: { postId } }),
@@ -243,11 +297,17 @@ export async function postRoutes(app: FastifyInstance) {
     }
 
     const comment = await prisma.comment.create({
-      data: { authorId, postId, content: body.content },
+      data: { 
+        authorId, 
+        postId, 
+        content: body.content,
+        parentCommentId: body.parentCommentId,
+      },
       include: {
         author: {
           select: { id: true, name: true, username: true, avatar: true },
         },
+        replies: true,
       },
     });
 
@@ -257,13 +317,75 @@ export async function postRoutes(app: FastifyInstance) {
         data: {
           userId: post.authorId,
           type: 'POST_COMMENTED',
-          title: 'New Comment',
-          body: 'Someone commented on your post',
+          title: '💬 New Comment',
+          body: `${comment.author.name} commented on your post`,
           data: { postId, commentId: comment.id, userId: authorId },
         },
+      }).catch(() => {});
+    }
+
+    // Notify @mentioned users
+    const mentionMatches = body.content.match(/@(\w+)/g);
+    if (mentionMatches && mentionMatches.length > 0) {
+      const usernames = mentionMatches.map((m: string) => m.slice(1));
+      const mentionedUsers = await prisma.user.findMany({
+        where: { username: { in: usernames } },
+        select: { id: true, username: true },
       });
+
+      for (const mentionedUser of mentionedUsers) {
+        if (mentionedUser.id === authorId || mentionedUser.id === post.authorId) continue;
+        await prisma.notification.create({
+          data: {
+            userId: mentionedUser.id,
+            type: 'COMMENT_MENTION',
+            title: '💬 You were mentioned',
+            body: `${comment.author.name} mentioned you in a comment`,
+            data: { postId, commentId: comment.id },
+          },
+        }).catch(() => {});
+      }
     }
 
     return reply.status(201).send({ success: true, data: comment });
+  });
+
+  // ─── Edit Comment ──────────────────────────────────────
+
+  app.put('/:id/comments/:commentId', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: postId, commentId } = request.params as { id: string; commentId: string };
+    const { id: userId } = request.user as { id: string };
+    const body = createCommentSchema.parse(request.body);
+
+    const comment = await prisma.comment.findUnique({ where: { id: commentId, postId } });
+    if (!comment) return reply.status(404).send({ success: false, message: 'Comment not found' });
+    if (comment.authorId !== userId) return reply.status(403).send({ success: false, message: 'Not authorized' });
+
+    const updated = await prisma.comment.update({
+      where: { id: commentId },
+      data: { content: body.content },
+    });
+
+    return reply.send({ success: true, data: updated });
+  });
+
+  // ─── Delete Comment ────────────────────────────────────
+
+  app.delete('/:id/comments/:commentId', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: postId, commentId } = request.params as { id: string; commentId: string };
+    const { id: userId } = request.user as { id: string };
+
+    const comment = await prisma.comment.findUnique({ where: { id: commentId, postId } });
+    if (!comment) return reply.status(404).send({ success: false, message: 'Comment not found' });
+    
+    const post = await prisma.post.findUnique({ where: { id: postId } });
+    
+    // Author of comment or author of post can delete
+    if (comment.authorId !== userId && post?.authorId !== userId) {
+      return reply.status(403).send({ success: false, message: 'Not authorized' });
+    }
+
+    await prisma.comment.delete({ where: { id: commentId } });
+    return reply.send({ success: true, message: 'Comment deleted' });
   });
 }

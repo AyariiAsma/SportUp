@@ -27,14 +27,38 @@ function formatEvent(event: any, currentUserId?: string | null) {
   const isJoined = currentUserId
     ? (event.participants?.some((p: any) => p.userId === currentUserId && p.status === 'CONFIRMED') ?? false)
     : false;
+  const likesCount = event._count?.likes ?? event.likesCount ?? 0;
+  const isLiked = currentUserId
+    ? (event.likes?.some((l: any) => l.userId === currentUserId) ?? false)
+    : false;
+
+  // Augment comments with likesCount and isLiked
+  const comments = event.comments?.map((c: any) => ({
+    ...c,
+    likesCount: c._count?.likes ?? c.likes?.length ?? 0,
+    isLiked: currentUserId ? (c.likes?.some((l: any) => l.userId === currentUserId) ?? false) : false,
+    likes: undefined,
+    _count: undefined,
+    replies: c.replies?.map((r: any) => ({
+      ...r,
+      likesCount: r._count?.likes ?? r.likes?.length ?? 0,
+      isLiked: currentUserId ? (r.likes?.some((l: any) => l.userId === currentUserId) ?? false) : false,
+      likes: undefined,
+      _count: undefined,
+    })),
+  }));
 
   return {
     ...event,
     status: computedStatus,
     participantCount,
     isJoined,
+    likesCount,
+    isLiked,
+    likes: undefined,
     _count: undefined,
     participants: event.participants,
+    comments,
   };
 }
 
@@ -158,15 +182,27 @@ export async function eventRoutes(app: FastifyInstance) {
         route: true,
         participants: {
           where: { status: 'CONFIRMED' },
-          include: { user: { select: { id: true, name: true, username: true, avatar: true } } },
+          include: { user: { select: { id: true, name: true, username: true, avatar: true, isOnline: true } } },
           orderBy: { joinedAt: 'asc' },
           take: 20,
         },
+        likes: { select: { userId: true } },
         comments: {
-          include: { author: { select: { id: true, name: true, username: true, avatar: true } } },
+          include: { 
+            author: { select: { id: true, name: true, username: true, avatar: true } },
+            likes: { select: { userId: true } },
+            replies: {
+              include: {
+                author: { select: { id: true, name: true, username: true, avatar: true } },
+                likes: { select: { userId: true } },
+              },
+              orderBy: { createdAt: 'asc' },
+            }
+          },
+          where: { parentCommentId: null },
           orderBy: { createdAt: 'asc' },
         },
-        _count: { select: { participants: { where: { status: 'CONFIRMED' } } } },
+        _count: { select: { participants: { where: { status: 'CONFIRMED' } }, likes: true } },
       },
     });
 
@@ -352,7 +388,15 @@ export async function eventRoutes(app: FastifyInstance) {
 
     const comments = await prisma.comment.findMany({
       where: { eventId },
-      include: { author: { select: { id: true, name: true, username: true, avatar: true } } },
+      include: { 
+        author: { select: { id: true, name: true, username: true, avatar: true } },
+        replies: {
+          include: {
+            author: { select: { id: true, name: true, username: true, avatar: true } },
+          },
+          orderBy: { createdAt: 'asc' },
+        }
+      },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -370,8 +414,11 @@ export async function eventRoutes(app: FastifyInstance) {
     if (!event) return reply.status(404).send({ success: false, message: 'Event not found' });
 
     const comment = await prisma.comment.create({
-      data: { eventId, authorId, content },
-      include: { author: { select: { id: true, name: true, username: true, avatar: true } } },
+      data: { eventId, authorId, content, parentCommentId: (request.body as any)?.parentCommentId },
+      include: { 
+        author: { select: { id: true, name: true, username: true, avatar: true } },
+        replies: true 
+      },
     });
 
     // Notify organizer if commenter is not the organizer
@@ -385,6 +432,30 @@ export async function eventRoutes(app: FastifyInstance) {
           data: { eventId, commentId: comment.id },
         },
       });
+    }
+
+    // Notify @mentioned users
+    const mentionMatches = content.match(/@(\w+)/g);
+    if (mentionMatches && mentionMatches.length > 0) {
+      const usernames = mentionMatches.map((m: string) => m.slice(1)); // strip @
+      const mentionedUsers = await prisma.user.findMany({
+        where: { username: { in: usernames } },
+        select: { id: true, username: true },
+      });
+
+      for (const mentionedUser of mentionedUsers) {
+        // Don't notify yourself or the organizer (already notified above)
+        if (mentionedUser.id === authorId || mentionedUser.id === event.organizerId) continue;
+        await prisma.notification.create({
+          data: {
+            userId: mentionedUser.id,
+            type: 'COMMENT_MENTION',
+            title: '💬 You were mentioned',
+            body: `${comment.author.name} mentioned you in a comment on "${event.title}"`,
+            data: { eventId, commentId: comment.id },
+          },
+        }).catch(() => {/* ignore duplicate */});
+      }
     }
 
     return reply.status(201).send({ success: true, data: comment });
@@ -411,7 +482,80 @@ export async function eventRoutes(app: FastifyInstance) {
     return reply.send({ success: true, message: 'Comment deleted' });
   });
 
+  // ─── Like / Unlike Event ───────────────────────────────
+
+  app.post('/:id/like', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: eventId } = request.params as { id: string };
+    const { id: userId } = request.user as { id: string };
+
+    const liker = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+
+    const existing = await prisma.like.findUnique({
+      where: { userId_eventId: { userId, eventId } },
+    });
+
+    if (existing) {
+      await prisma.like.delete({ where: { userId_eventId: { userId, eventId } } });
+      return reply.send({ success: true, liked: false });
+    } else {
+      await prisma.like.create({ data: { userId, eventId } });
+
+      // Notify organizer
+      const event = await prisma.event.findUnique({ where: { id: eventId } });
+      if (event && event.organizerId !== userId) {
+        await prisma.notification.create({
+          data: {
+            userId: event.organizerId,
+            type: 'EVENT_LIKED',
+            title: '❤️ Run Liked',
+            body: `${liker?.name || 'Someone'} liked your run "${event.title}"!`,
+            data: { eventId, userId },
+          },
+        }).catch(() => {});
+      }
+
+      return reply.send({ success: true, liked: true });
+    }
+  });
+
+  // ─── Like / Unlike Comment ────────────────────────────
+
+  app.post('/:id/comments/:commentId/like', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: eventId, commentId } = request.params as { id: string; commentId: string };
+    const { id: userId } = request.user as { id: string };
+
+    const liker = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+
+    const existing = await prisma.like.findUnique({
+      where: { userId_commentId: { userId, commentId } },
+    });
+
+    if (existing) {
+      await prisma.like.delete({ where: { userId_commentId: { userId, commentId } } });
+      return reply.send({ success: true, liked: false });
+    } else {
+      await prisma.like.create({ data: { userId, commentId } });
+
+      // Notify comment author
+      const comment = await prisma.comment.findUnique({ where: { id: commentId } });
+      if (comment && comment.authorId !== userId) {
+        await prisma.notification.create({
+          data: {
+            userId: comment.authorId,
+            type: 'COMMENT_LIKED',
+            title: '❤️ Comment Liked',
+            body: `${liker?.name || 'Someone'} liked your comment`,
+            data: { eventId, commentId },
+          },
+        }).catch(() => {});
+      }
+
+      return reply.send({ success: true, liked: true });
+    }
+  });
+
   // ─── Get / Save Route ──────────────────────────────────
+
 
   app.get('/:id/route', async (request, reply) => {
     const { id: eventId } = request.params as { id: string };
@@ -437,6 +581,111 @@ export async function eventRoutes(app: FastifyInstance) {
     });
 
     return reply.send({ success: true, data: route });
+  });
+
+  // ─── Invitations ────────────────────────────────────────
+
+  app.post('/:id/invitations', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: eventId } = request.params as { id: string };
+    const { id: inviterId } = request.user as { id: string };
+    const { inviteeId } = request.body as { inviteeId: string };
+
+    if (!inviteeId || inviterId === inviteeId) {
+      return reply.send({ success: true, message: 'Cannot invite yourself' });
+    }
+
+    const event = await prisma.event.findUnique({ where: { id: eventId } });
+    if (!event) return reply.status(404).send({ success: false, message: 'Event not found' });
+
+    // Upsert invitation so re-inviting or duplicate invites work smoothly without crashing
+    const invitation = await prisma.eventInvitation.upsert({
+      where: { eventId_inviteeId: { eventId, inviteeId } },
+      create: { eventId, inviterId, inviteeId, status: 'PENDING' },
+      update: { inviterId, status: 'PENDING' },
+    });
+
+    // Create system notification for the invited user
+    const inviter = await prisma.user.findUnique({
+      where: { id: inviterId },
+      select: { name: true },
+    });
+
+    await prisma.notification.create({
+      data: {
+        userId: inviteeId,
+        type: 'EVENT_INVITE',
+        title: '🏃 Event Invitation',
+        body: `${inviter?.name || 'A runner'} invited you to join "${event.title}"!`,
+        data: { eventId, invitationId: invitation.id },
+      },
+    }).catch(() => {/* Ignore duplicate notification errors */});
+
+    return reply.status(201).send({ success: true, data: invitation });
+  });
+
+  app.get('/:id/invitations', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: eventId } = request.params as { id: string };
+    
+    const invitations = await prisma.eventInvitation.findMany({
+      where: { eventId },
+      include: {
+        invitee: { select: { id: true, name: true, username: true, avatar: true } },
+      }
+    });
+
+    return reply.send({ success: true, data: invitations });
+  });
+
+  // Get user's received invitations
+  app.get('/invitations/my', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: userId } = request.user as { id: string };
+
+    const invitations = await prisma.eventInvitation.findMany({
+      where: { inviteeId: userId, status: 'PENDING' },
+      include: {
+        event: {
+          select: {
+            id: true,
+            title: true,
+            startAt: true,
+            distanceKm: true,
+            city: true,
+            region: true,
+            organizer: { select: { id: true, name: true, username: true, avatar: true } },
+          },
+        },
+        inviter: { select: { id: true, name: true, username: true, avatar: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return reply.send({ success: true, data: invitations });
+  });
+
+  // User accepts/declines invitation
+  app.put('/invitations/:invitationId', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { invitationId } = request.params as { invitationId: string };
+    const { id: userId } = request.user as { id: string };
+    const { status } = request.body as { status: 'ACCEPTED' | 'DECLINED' };
+
+    const invitation = await prisma.eventInvitation.findUnique({ where: { id: invitationId } });
+    if (!invitation) return reply.status(404).send({ success: false, message: 'Invitation not found' });
+    if (invitation.inviteeId !== userId) return reply.status(403).send({ success: false, message: 'Not authorized' });
+
+    const updated = await prisma.eventInvitation.update({
+      where: { id: invitationId },
+      data: { status },
+    });
+
+    if (status === 'ACCEPTED') {
+      await prisma.eventParticipant.upsert({
+        where: { eventId_userId: { eventId: invitation.eventId, userId } },
+        create: { eventId: invitation.eventId, userId, status: 'CONFIRMED' },
+        update: { status: 'CONFIRMED' },
+      });
+    }
+
+    return reply.send({ success: true, data: updated });
   });
 }
 

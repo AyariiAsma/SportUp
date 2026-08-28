@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../../src/stores/auth.store';
@@ -19,7 +19,7 @@ export default function ProfileScreen() {
   const { user } = useAuthStore();
   const router = useRouter();
 
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading, refetch } = useQuery({
     queryKey: ['profile', 'me'],
     queryFn: async () => {
       const res = await api.get<ApiResponse<UserProfile>>('/users/me');
@@ -34,7 +34,17 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isLoading}
+            onRefresh={refetch}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+          />
+        }
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Profile</Text>
           <TouchableOpacity onPress={() => router.push('/(app)/profile/edit')}>
@@ -56,7 +66,11 @@ export default function ProfileScreen() {
           <Text style={styles.name}>{displayProfile?.name}</Text>
           <Text style={styles.username}>@{displayProfile?.username}</Text>
           <Text style={styles.runningLevel}>{runningLevelLabel}</Text>
-          {displayProfile?.city && <Text style={styles.city}>📍 {displayProfile.city}</Text>}
+          {(displayProfile?.region || displayProfile?.city || displayProfile?.locality) && (
+            <Text style={styles.city}>
+              📍 {[displayProfile.region, displayProfile.city, displayProfile.locality].filter(Boolean).join(', ')}
+            </Text>
+          )}
           {displayProfile?.bio && <Text style={styles.bio}>{displayProfile.bio}</Text>}
 
           {/* ── Social counts ── */}

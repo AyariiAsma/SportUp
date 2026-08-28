@@ -36,7 +36,9 @@ model User {
   avatar          String?
   bio             String?
   city            String?
-  region          String?
+  region          String? // Maps to Governorate
+  locality        String?
+  additionalAddress String?
   country         String?
   lat             Float?
   lng             Float?
@@ -47,6 +49,8 @@ model User {
   appleId         String?      @unique
   isVerified      Boolean      @default(false)
   isActive        Boolean  @default(true)
+  isOnline        Boolean  @default(false)
+  lastSeenAt      DateTime?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -62,6 +66,9 @@ model User {
   refreshTokens   RefreshToken[]
   comments        Comment[]
   likes           Like[]
+  receivedInvitations EventInvitation[] @relation("Invitee")
+  sentInvitations EventInvitation[] @relation("Inviter")
+  postTags        PostTag[]
 
   @@map("users")
 }
@@ -87,7 +94,9 @@ model Event {
   // Location
   locationName String?
   city         String?
-  region       String?
+  region       String? // Maps to Governorate
+  locality     String?
+  additionalAddress String?
   country      String?
   lat          Float?
   lng          Float?
@@ -103,7 +112,9 @@ model Event {
   metadata Json? // e.g. { elevation: 200, pace: '5:30/km' }
 
   participants EventParticipant[]
+  invitations  EventInvitation[]
   comments     Comment[]
+  likes        Like[]
   route        EventRoute?
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
@@ -159,6 +170,31 @@ enum ParticipantStatus {
   CANCELLED
 }
 
+// ─── EVENT INVITATIONS ───────────────────────────────────
+
+model EventInvitation {
+  id          String             @id @default(cuid())
+  eventId     String
+  event       Event              @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  inviterId   String
+  inviter     User               @relation("Inviter", fields: [inviterId], references: [id])
+  inviteeId   String
+  invitee     User               @relation("Invitee", fields: [inviteeId], references: [id])
+  status      InvitationStatus   @default(PENDING)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  @@unique([eventId, inviteeId])
+  @@index([inviteeId, status])
+  @@map("event_invitations")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
 // ─── EVENT ROUTES ────────────────────────────────────────
 // Running, cycling, hiking routes — polyline on a map
 
@@ -186,6 +222,7 @@ model Post {
   media     Media[]
   likes     Like[]
   comments  Comment[]
+  tags      PostTag[]
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
@@ -202,6 +239,20 @@ enum PostCategory {
   NUTRITION
   ACHIEVEMENT
   EVENT_PROMO
+}
+
+// ─── POST TAGS ───────────────────────────────────────────
+
+model PostTag {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@map("post_tags")
 }
 
 // ─── REELS ───────────────────────────────────────────────
@@ -256,10 +307,16 @@ model Like {
   post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
   reelId    String?
   reel      Reel?    @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  eventId   String?
+  event     Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  commentId String?
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   @@unique([userId, postId])
   @@unique([userId, reelId])
+  @@unique([userId, eventId])
+  @@unique([userId, commentId])
   @@map("likes")
 }
 
@@ -276,6 +333,12 @@ model Comment {
   reel      Reel?    @relation(fields: [reelId], references: [id], onDelete: Cascade)
   eventId   String?
   event     Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  
+  parentCommentId String?
+  parentComment   Comment?  @relation("CommentReplies", fields: [parentCommentId], references: [id], onDelete: SetNull)
+  replies         Comment[] @relation("CommentReplies")
+  likes           Like[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -322,8 +385,11 @@ enum NotificationType {
   EVENT_JOINED
   EVENT_CANCELLED
   EVENT_UPDATED
+  EVENT_LIKED
   POST_LIKED
   POST_COMMENTED
+  COMMENT_LIKED
+  COMMENT_MENTION
   NEW_FOLLOWER
   NEW_NEARBY_EVENT
 }
@@ -391,6 +457,7 @@ model UserSettings {
   notifyNewFollower   Boolean @default(true)
   notifyNearbyEvent   Boolean @default(true)
   locationSharingMode String  @default("none") // "gps" | "manual" | "none"
+  showOnlineStatus    Boolean @default(true)
 
   @@map("user_settings")
 }

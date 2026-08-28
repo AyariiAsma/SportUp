@@ -85,11 +85,9 @@ export function EventFlyer({ event }: EventFlyerProps) {
           {event.locationName && (
             <Text style={styles.locationTitle}>{event.locationName}</Text>
           )}
-          {event.city && (
+          {(event.locality || event.city || event.region || event.country) && (
             <Text style={styles.locationSubtitle}>
-              {event.city}
-              {event.region ? `, ${event.region}` : ''}
-              {event.country ? `, ${event.country}` : ''}
+              {[event.locality, event.city, event.region, event.country].filter(Boolean).join(', ')}
             </Text>
           )}
         </View>
