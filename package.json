@@ -1,0 +1,21 @@
+{
+  "name": "sportup",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SportUp — Discover, Create & Join Sporting Activities",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "api": "npm run dev --workspace=apps/api",
+    "mobile": "npm run start --workspace=apps/mobile",
+    "shared:build": "npm run build --workspace=packages/shared",
+    "db:migrate": "npm run db:migrate --workspace=apps/api",
+    "db:seed": "npm run db:seed --workspace=apps/api",
+    "db:studio": "npm run db:studio --workspace=apps/api"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

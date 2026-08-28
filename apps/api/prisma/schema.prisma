@@ -1,0 +1,410 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── SPORTS ──────────────────────────────────────────────
+// Extensible sport catalogue — add new sports without code changes
+
+model Sport {
+  id        String   @id @default(cuid())
+  name      String   @unique // "running", "cycling", "football"
+  label     String // "Running", "Cycling", "Football"
+  icon      String // icon name or URL
+  color     String // brand color hex
+  metadata  Json? // sport-specific config: { hasRoute, hasDistance, ... }
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  events Event[]
+
+  @@map("sports")
+}
+
+// ─── USERS ───────────────────────────────────────────────
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String?
+  name            String
+  username        String   @unique
+  avatar          String?
+  bio             String?
+  city            String?
+  region          String?
+  country         String?
+  lat             Float?
+  lng             Float?
+  runningLevel    RunningLevel @default(BEGINNER)
+  preferredSports String[]     // array of sport IDs
+  totalDistanceKm Float        @default(0)
+  googleId        String?      @unique
+  appleId         String?      @unique
+  isVerified      Boolean      @default(false)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  organizedEvents Event[]            @relation("Organizer")
+  participations  EventParticipant[]
+  posts           Post[]
+  reels           Reel[]
+  followers       Follow[]           @relation("Following")
+  following       Follow[]           @relation("Follower")
+  sentReports     Report[]           @relation("Reporter")
+  notifications   Notification[]
+  settings        UserSettings?
+  refreshTokens   RefreshToken[]
+  comments        Comment[]
+  likes           Like[]
+
+  @@map("users")
+}
+
+// ─── EVENTS ──────────────────────────────────────────────
+// Sport-agnostic: the `metadata` JSON field holds sport-specific data
+
+model Event {
+  id              String      @id @default(cuid())
+  title           String
+  description     String
+  sportId         String
+  sport           Sport       @relation(fields: [sportId], references: [id])
+  organizerId     String
+  organizer       User        @relation("Organizer", fields: [organizerId], references: [id])
+  status          EventStatus @default(DRAFT)
+  difficulty      Difficulty?
+  maxParticipants Int?
+  startAt         DateTime
+  endAt           DateTime?
+  durationMin     Int? // estimated duration in minutes
+
+  // Location
+  locationName String?
+  city         String?
+  region       String?
+  country      String?
+  lat          Float?
+  lng          Float?
+
+  // Running-specific (extensible to other sports via metadata)
+  distanceKm Float? // e.g. 5.0 for a 5 KM run
+
+  // Media
+  coverImage String?
+  videoUrl   String?
+
+  // Sport-specific metadata (extensible)
+  metadata Json? // e.g. { elevation: 200, pace: '5:30/km' }
+
+  participants EventParticipant[]
+  comments     Comment[]
+  route        EventRoute?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([sportId])
+  @@index([status])
+  @@index([startAt])
+  @@index([city])
+  @@index([lat, lng])
+  @@map("events")
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  UPCOMING
+  STARTED
+  COMPLETED
+  CANCELLED
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  ELITE
+}
+
+enum RunningLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+// ─── EVENT PARTICIPANTS ──────────────────────────────────
+
+model EventParticipant {
+  id       String            @id @default(cuid())
+  eventId  String
+  event    Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User              @relation(fields: [userId], references: [id])
+  joinedAt DateTime          @default(now())
+  status   ParticipantStatus @default(CONFIRMED)
+
+  @@unique([eventId, userId])
+  @@map("event_participants")
+}
+
+enum ParticipantStatus {
+  CONFIRMED
+  WAITLISTED
+  CANCELLED
+}
+
+// ─── EVENT ROUTES ────────────────────────────────────────
+// Running, cycling, hiking routes — polyline on a map
+
+model EventRoute {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  points      Json // Array of { lat, lng, order }
+  distanceKm  Float?
+  encodedPath String? // Google Maps encoded polyline
+  createdAt   DateTime @default(now())
+
+  @@map("event_routes")
+}
+
+// ─── POSTS ───────────────────────────────────────────────
+
+model Post {
+  id        String       @id @default(cuid())
+  authorId  String
+  author    User         @relation(fields: [authorId], references: [id])
+  content   String?
+  category  PostCategory @default(GENERAL)
+  isPublic  Boolean      @default(true)
+  media     Media[]
+  likes     Like[]
+  comments  Comment[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([authorId])
+  @@index([category])
+  @@index([createdAt])
+  @@map("posts")
+}
+
+enum PostCategory {
+  GENERAL
+  ADVICE
+  MOTIVATION
+  NUTRITION
+  ACHIEVEMENT
+  EVENT_PROMO
+}
+
+// ─── REELS ───────────────────────────────────────────────
+
+model Reel {
+  id           String    @id @default(cuid())
+  authorId     String
+  author       User      @relation(fields: [authorId], references: [id])
+  videoUrl     String
+  thumbnailUrl String?
+  caption      String?
+  views        Int       @default(0)
+  likes        Like[]
+  comments     Comment[]
+  createdAt    DateTime  @default(now())
+
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("reels")
+}
+
+// ─── MEDIA ───────────────────────────────────────────────
+
+model Media {
+  id        String    @id @default(cuid())
+  url       String
+  type      MediaType
+  mimeType  String?
+  sizeBytes Int?
+  width     Int?
+  height    Int?
+  postId    String?
+  post      Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@map("media")
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
+  THUMBNAIL
+}
+
+// ─── LIKES ───────────────────────────────────────────────
+// Polymorphic: can like posts or reels
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  postId    String?
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reelId    String?
+  reel      Reel?    @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@unique([userId, reelId])
+  @@map("likes")
+}
+
+// ─── COMMENTS ────────────────────────────────────────────
+
+model Comment {
+  id        String   @id @default(cuid())
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  content   String
+  postId    String?
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reelId    String?
+  reel      Reel?    @relation(fields: [reelId], references: [id], onDelete: Cascade)
+  eventId   String?
+  event     Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId])
+  @@index([reelId])
+  @@index([eventId])
+  @@map("comments")
+}
+
+// ─── FOLLOWS ─────────────────────────────────────────────
+
+model Follow {
+  followerId  String
+  followingId String
+  follower    User     @relation("Follower", fields: [followerId], references: [id])
+  following   User     @relation("Following", fields: [followingId], references: [id])
+  createdAt   DateTime @default(now())
+
+  @@id([followerId, followingId])
+  @@map("follows")
+}
+
+// ─── NOTIFICATIONS ───────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  type      NotificationType
+  title     String
+  body      String
+  data      Json? // { eventId, postId, userId, ... }
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  EVENT_INVITE
+  EVENT_REMINDER
+  EVENT_JOINED
+  EVENT_CANCELLED
+  EVENT_UPDATED
+  POST_LIKED
+  POST_COMMENTED
+  NEW_FOLLOWER
+  NEW_NEARBY_EVENT
+}
+
+// ─── FOOD RECOMMENDATIONS ────────────────────────────────
+
+model FoodRecommendation {
+  id          String       @id @default(cuid())
+  title       String
+  description String
+  category    FoodCategory
+  imageUrl    String?
+  tags        String[]
+  isPublished Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+
+  @@map("food_recommendations")
+}
+
+enum FoodCategory {
+  MEAL
+  RECIPE
+  TIP
+  RESTAURANT
+}
+
+// ─── REPORTS ─────────────────────────────────────────────
+
+model Report {
+  id         String       @id @default(cuid())
+  reporterId String
+  reporter   User         @relation("Reporter", fields: [reporterId], references: [id])
+  targetType ReportTarget
+  targetId   String
+  reason     String
+  status     ReportStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+
+  @@index([targetType, targetId])
+  @@map("reports")
+}
+
+enum ReportTarget {
+  POST
+  REEL
+  USER
+  EVENT
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
+// ─── USER SETTINGS ───────────────────────────────────────
+
+model UserSettings {
+  userId              String  @id
+  user                User    @relation(fields: [userId], references: [id])
+  notifyEventInvite   Boolean @default(true)
+  notifyEventReminder Boolean @default(true)
+  notifyPostLike      Boolean @default(true)
+  notifyNewFollower   Boolean @default(true)
+  notifyNearbyEvent   Boolean @default(true)
+  locationSharingMode String  @default("none") // "gps" | "manual" | "none"
+
+  @@map("user_settings")
+}
+
+// ─── REFRESH TOKENS ──────────────────────────────────────
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}

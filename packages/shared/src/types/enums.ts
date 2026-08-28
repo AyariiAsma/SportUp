@@ -1,0 +1,77 @@
+// ─── Enums ───────────────────────────────────────────────
+
+export enum EventStatus {
+  DRAFT = 'DRAFT',
+  PUBLISHED = 'PUBLISHED',
+  UPCOMING = 'UPCOMING',
+  STARTED = 'STARTED',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum Difficulty {
+  BEGINNER = 'BEGINNER',
+  INTERMEDIATE = 'INTERMEDIATE',
+  ADVANCED = 'ADVANCED',
+  ELITE = 'ELITE',
+}
+
+export enum RunningLevel {
+  BEGINNER = 'BEGINNER',
+  INTERMEDIATE = 'INTERMEDIATE',
+  ADVANCED = 'ADVANCED',
+}
+
+export enum ParticipantStatus {
+  CONFIRMED = 'CONFIRMED',
+  WAITLISTED = 'WAITLISTED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum PostCategory {
+  GENERAL = 'GENERAL',
+  ADVICE = 'ADVICE',
+  MOTIVATION = 'MOTIVATION',
+  NUTRITION = 'NUTRITION',
+  ACHIEVEMENT = 'ACHIEVEMENT',
+  EVENT_PROMO = 'EVENT_PROMO',
+}
+
+export enum MediaType {
+  IMAGE = 'IMAGE',
+  VIDEO = 'VIDEO',
+  THUMBNAIL = 'THUMBNAIL',
+}
+
+export enum NotificationType {
+  EVENT_INVITE = 'EVENT_INVITE',
+  EVENT_REMINDER = 'EVENT_REMINDER',
+  EVENT_JOINED = 'EVENT_JOINED',
+  EVENT_CANCELLED = 'EVENT_CANCELLED',
+  EVENT_UPDATED = 'EVENT_UPDATED',
+  POST_LIKED = 'POST_LIKED',
+  POST_COMMENTED = 'POST_COMMENTED',
+  NEW_FOLLOWER = 'NEW_FOLLOWER',
+  NEW_NEARBY_EVENT = 'NEW_NEARBY_EVENT',
+}
+
+export enum ReportTarget {
+  POST = 'POST',
+  REEL = 'REEL',
+  USER = 'USER',
+  EVENT = 'EVENT',
+}
+
+export enum ReportStatus {
+  PENDING = 'PENDING',
+  REVIEWED = 'REVIEWED',
+  RESOLVED = 'RESOLVED',
+  DISMISSED = 'DISMISSED',
+}
+
+export enum FoodCategory {
+  MEAL = 'MEAL',
+  RECIPE = 'RECIPE',
+  TIP = 'TIP',
+  RESTAURANT = 'RESTAURANT',
+}

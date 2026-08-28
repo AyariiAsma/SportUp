@@ -1,0 +1,166 @@
+import { FastifyInstance } from 'fastify';
+import { prisma } from '../../prisma/client';
+import { updateProfileSchema } from '@sportup/shared';
+
+// Helper: build full user profile with running stats
+async function buildUserProfile(userId: string, currentUserId?: string | null) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId, isActive: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      username: true,
+      avatar: true,
+      bio: true,
+      city: true,
+      region: true,
+      country: true,
+      lat: true,
+      lng: true,
+      runningLevel: true,
+      totalDistanceKm: true,
+      preferredSports: true,
+      isVerified: true,
+      createdAt: true,
+      _count: {
+        select: {
+          followers: true,
+          following: true,
+          organizedEvents: true,
+          posts: true,
+        },
+      },
+    },
+  });
+
+  if (!user) return null;
+
+  // Running stats
+  const [runsJoined, runsCompleted] = await Promise.all([
+    prisma.eventParticipant.count({
+      where: { userId, status: 'CONFIRMED' },
+    }),
+    prisma.eventParticipant.count({
+      where: {
+        userId,
+        status: 'CONFIRMED',
+        event: { status: 'COMPLETED' },
+      },
+    }),
+  ]);
+
+  let isFollowing = false;
+  if (currentUserId && currentUserId !== userId) {
+    const follow = await prisma.follow.findUnique({
+      where: { followerId_followingId: { followerId: currentUserId, followingId: userId } },
+    });
+    isFollowing = !!follow;
+  }
+
+  return {
+    ...user,
+    followersCount: user._count.followers,
+    followingCount: user._count.following,
+    runsJoined,
+    runsOrganized: user._count.organizedEvents,
+    runsCompleted,
+    postsCount: user._count.posts,
+    isFollowing,
+    _count: undefined,
+  };
+}
+
+export async function userRoutes(app: FastifyInstance) {
+  // ─── Get Own Profile ───────────────────────────────────
+
+  app.get('/me', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.user as { id: string };
+
+    const profile = await buildUserProfile(id, id);
+    if (!profile) {
+      return reply.status(404).send({ success: false, message: 'User not found' });
+    }
+
+    return reply.send({ success: true, data: profile });
+  });
+
+  // ─── Update Own Profile ────────────────────────────────
+
+  app.patch('/me', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id } = request.user as { id: string };
+    const body = updateProfileSchema.parse(request.body);
+
+    if (body.username) {
+      const existing = await prisma.user.findFirst({
+        where: { username: body.username, NOT: { id } },
+      });
+      if (existing) {
+        return reply.status(409).send({ success: false, message: 'Username is already taken' });
+      }
+    }
+
+    await prisma.user.update({ where: { id }, data: body });
+
+    const profile = await buildUserProfile(id, id);
+    return reply.send({ success: true, data: profile });
+  });
+
+  // ─── Get Public Profile ────────────────────────────────
+
+  app.get('/:id', async (request, reply) => {
+    const { id } = request.params as { id: string };
+    let currentUserId: string | null = null;
+
+    try {
+      await request.jwtVerify();
+      currentUserId = (request.user as { id: string }).id;
+    } catch { /* Not authenticated */ }
+
+    const profile = await buildUserProfile(id, currentUserId);
+    if (!profile) {
+      return reply.status(404).send({ success: false, message: 'User not found' });
+    }
+
+    return reply.send({ success: true, data: profile });
+  });
+
+  // ─── Follow User ───────────────────────────────────────
+
+  app.post('/:id/follow', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: followingId } = request.params as { id: string };
+    const { id: followerId } = request.user as { id: string };
+
+    if (followerId === followingId) {
+      return reply.status(400).send({ success: false, message: 'You cannot follow yourself' });
+    }
+
+    const targetUser = await prisma.user.findUnique({ where: { id: followingId } });
+    if (!targetUser) return reply.status(404).send({ success: false, message: 'User not found' });
+
+    try {
+      await prisma.follow.create({ data: { followerId, followingId } });
+      await prisma.notification.create({
+        data: {
+          userId: followingId,
+          type: 'NEW_FOLLOWER',
+          title: 'New Follower',
+          body: `${targetUser.name} started following you`,
+          data: { followerId },
+        },
+      });
+    } catch { /* Already following */ }
+
+    return reply.send({ success: true, message: 'Following' });
+  });
+
+  // ─── Unfollow User ─────────────────────────────────────
+
+  app.delete('/:id/follow', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: followingId } = request.params as { id: string };
+    const { id: followerId } = request.user as { id: string };
+
+    await prisma.follow.deleteMany({ where: { followerId, followingId } });
+    return reply.send({ success: true, message: 'Unfollowed' });
+  });
+}
