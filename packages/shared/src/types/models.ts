@@ -3,6 +3,7 @@ import {
   Difficulty,
   RunningLevel,
   ParticipantStatus,
+  AttendanceStatus,
   PostCategory,
   MediaType,
   NotificationType,
@@ -39,6 +40,7 @@ export interface User {
   lat?: number | null;
   lng?: number | null;
   runningLevel: RunningLevel;
+  rankScore: number;
   preferredSports: string[];
   totalDistanceKm: number;
   isVerified: boolean;
@@ -53,8 +55,16 @@ export interface UserProfile extends User {
   runsJoined: number;
   runsOrganized: number;
   runsCompleted: number;
+  runsAttended: number;
   postsCount: number;
   isFollowing?: boolean;
+  rank: {
+    score: number;
+    level: RunningLevel;
+    nextLevel: RunningLevel | null;
+    pointsToNextLevel: number;
+    progress: number;
+  };
 }
 
 // ─── Event ───────────────────────────────────────────────
@@ -120,6 +130,9 @@ export interface EventParticipant {
   user: Pick<User, 'id' | 'name' | 'username' | 'avatar'>;
   joinedAt: string;
   status: ParticipantStatus;
+  attendance: AttendanceStatus;
+  attendanceAt?: string | null;
+  pointsAwarded: number;
 }
 
 export interface EventComment {

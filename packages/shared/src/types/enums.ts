@@ -28,6 +28,12 @@ export enum ParticipantStatus {
   CANCELLED = 'CANCELLED',
 }
 
+export enum AttendanceStatus {
+  PENDING = 'PENDING',
+  PRESENT = 'PRESENT',
+  ABSENT = 'ABSENT',
+}
+
 export enum PostCategory {
   GENERAL = 'GENERAL',
   ADVICE = 'ADVICE',
@@ -53,6 +59,8 @@ export enum NotificationType {
   POST_COMMENTED = 'POST_COMMENTED',
   NEW_FOLLOWER = 'NEW_FOLLOWER',
   NEW_NEARBY_EVENT = 'NEW_NEARBY_EVENT',
+  ATTENDANCE_CONFIRMED = 'ATTENDANCE_CONFIRMED',
+  RANK_UP = 'RANK_UP',
 }
 
 export enum ReportTarget {

@@ -43,6 +43,7 @@ model User {
   lat             Float?
   lng             Float?
   runningLevel    RunningLevel @default(BEGINNER)
+  rankScore       Int          @default(0)
   preferredSports String[]     // array of sport IDs
   totalDistanceKm Float        @default(0)
   googleId        String?      @unique
@@ -160,6 +161,12 @@ model EventParticipant {
   joinedAt DateTime          @default(now())
   status   ParticipantStatus @default(CONFIRMED)
 
+  // Attendance — confirmed by the event organizer once the run happened
+  attendance       AttendanceStatus @default(PENDING)
+  attendanceAt     DateTime?
+  pointsAwarded    Int              @default(0)
+  distanceAwardedKm Float           @default(0)
+
   @@unique([eventId, userId])
   @@map("event_participants")
 }
@@ -168,6 +175,12 @@ enum ParticipantStatus {
   CONFIRMED
   WAITLISTED
   CANCELLED
+}
+
+enum AttendanceStatus {
+  PENDING
+  PRESENT
+  ABSENT
 }
 
 // ─── EVENT INVITATIONS ───────────────────────────────────
@@ -392,6 +405,8 @@ enum NotificationType {
   COMMENT_MENTION
   NEW_FOLLOWER
   NEW_NEARBY_EVENT
+  ATTENDANCE_CONFIRMED
+  RANK_UP
 }
 
 // ─── FOOD RECOMMENDATIONS ────────────────────────────────

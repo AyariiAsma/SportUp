@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { prisma } from '../../prisma/client';
-import { updateProfileSchema } from '@sportup/shared';
+import { minScoreForLevel, updateProfileSchema } from '@sportup/shared';
+import { buildRank } from '../rank/rank.service';
 
 // Helper: build full user profile with running stats
 async function buildUserProfile(userId: string, currentUserId?: string | null) {
@@ -19,6 +20,7 @@ async function buildUserProfile(userId: string, currentUserId?: string | null) {
       lat: true,
       lng: true,
       runningLevel: true,
+      rankScore: true,
       totalDistanceKm: true,
       preferredSports: true,
       isVerified: true,
@@ -39,7 +41,7 @@ async function buildUserProfile(userId: string, currentUserId?: string | null) {
   if (!user) return null;
 
   // Running stats
-  const [runsJoined, runsCompleted] = await Promise.all([
+  const [runsJoined, runsCompleted, runsAttended] = await Promise.all([
     prisma.eventParticipant.count({
       where: { userId, status: 'CONFIRMED' },
     }),
@@ -49,6 +51,9 @@ async function buildUserProfile(userId: string, currentUserId?: string | null) {
         status: 'CONFIRMED',
         event: { status: 'COMPLETED' },
       },
+    }),
+    prisma.eventParticipant.count({
+      where: { userId, status: 'CONFIRMED', attendance: 'PRESENT' },
     }),
   ]);
 
@@ -67,8 +72,10 @@ async function buildUserProfile(userId: string, currentUserId?: string | null) {
     runsJoined,
     runsOrganized: user._count.organizedEvents,
     runsCompleted,
+    runsAttended,
     postsCount: user._count.posts,
     isFollowing,
+    rank: buildRank(user.rankScore),
     _count: undefined,
   };
 }
@@ -127,7 +134,15 @@ export async function userRoutes(app: FastifyInstance) {
       }
     }
 
-    await prisma.user.update({ where: { id }, data: body });
+    // A self-declared running level seeds the rank score, so an earned rank
+    // recomputation never demotes the runner below what they signed up as.
+    const data: Record<string, unknown> = { ...body };
+    if (body.runningLevel) {
+      const current = await prisma.user.findUniqueOrThrow({ where: { id }, select: { rankScore: true } });
+      data.rankScore = Math.max(current.rankScore, minScoreForLevel(body.runningLevel));
+    }
+
+    await prisma.user.update({ where: { id }, data });
 
     const profile = await buildUserProfile(id, id);
     return reply.send({ success: true, data: profile });
@@ -219,6 +234,7 @@ export async function userRoutes(app: FastifyInstance) {
         avatar: true,
         city: true,
         runningLevel: true,
+        rankScore: true,
         isOnline: true,
         lastSeenAt: true,
       },

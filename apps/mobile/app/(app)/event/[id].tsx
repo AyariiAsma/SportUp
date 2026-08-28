@@ -92,6 +92,21 @@ export default function EventDetailScreen() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['event', id] }),
   });
 
+  const attendanceMutation = useMutation({
+    mutationFn: ({ userId, attendance }: { userId: string; attendance: 'PRESENT' | 'ABSENT' }) =>
+      eventService.markAttendance(id as string, userId, attendance as any),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['event', id] });
+      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      if (result?.attendance === 'PRESENT') {
+        Alert.alert('Presence confirmed', `Runner earned ${result.pointsAwarded} rank points.`);
+      }
+    },
+    onError: (err: any) => {
+      Alert.alert('Error', err.response?.data?.message || 'Could not update attendance');
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: () => eventService.deleteEvent(id as string),
     onSuccess: () => {
@@ -154,6 +169,7 @@ export default function EventDetailScreen() {
   }
 
   const isOrganizer = event.organizerId === user?.id;
+  const canMarkAttendance = event.status === 'STARTED' || event.status === 'COMPLETED';
   const difficultyColor = event.difficulty ? DIFFICULTY_COLOR[event.difficulty] : '#4CAF50';
   const spotsLeft = event.maxParticipants ? event.maxParticipants - event.participantCount : null;
 
@@ -395,6 +411,48 @@ export default function EventDetailScreen() {
             )}
           </View>
 
+          {/* ── Attendance (organizer only, once the run has started) ── */}
+          {isOrganizer && canMarkAttendance && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>✅ Confirm presence</Text>
+              <Text style={styles.attendanceHint}>
+                Confirming a runner's presence awards them rank points and can level up their rank.
+              </Text>
+              {event.participants && event.participants.length > 0 ? (
+                event.participants.map((p: any) => (
+                  <View key={p.id} style={styles.attendanceRow}>
+                    <Text style={styles.attendanceName} numberOfLines={1}>
+                      {p.user.name}
+                      {p.attendance === 'PRESENT' && p.pointsAwarded ? ` · +${p.pointsAwarded} pts` : ''}
+                    </Text>
+                    <View style={styles.attendanceActions}>
+                      <TouchableOpacity
+                        style={[styles.attendanceBtn, p.attendance === 'PRESENT' && styles.attendanceBtnPresent]}
+                        disabled={attendanceMutation.isPending}
+                        onPress={() => attendanceMutation.mutate({ userId: p.userId, attendance: 'PRESENT' })}
+                      >
+                        <Text style={[styles.attendanceBtnText, p.attendance === 'PRESENT' && styles.attendanceBtnTextActive]}>
+                          Present
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.attendanceBtn, p.attendance === 'ABSENT' && styles.attendanceBtnAbsent]}
+                        disabled={attendanceMutation.isPending}
+                        onPress={() => attendanceMutation.mutate({ userId: p.userId, attendance: 'ABSENT' })}
+                      >
+                        <Text style={[styles.attendanceBtnText, p.attendance === 'ABSENT' && styles.attendanceBtnTextActive]}>
+                          Absent
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))
+              ) : (
+                <Text style={styles.noComments}>Nobody joined this run.</Text>
+              )}
+            </View>
+          )}
+
           <InviteModal
             eventId={event.id}
             visible={showInviteModal}
@@ -551,6 +609,15 @@ const styles = StyleSheet.create({
   participantAvatarImg: { width: 40, height: 40, borderRadius: 20 },
   participantAvatarPlaceholder: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surfaceElevated, justifyContent: 'center', alignItems: 'center' },
   participantLetter: { color: theme.colors.text, fontFamily: theme.typography.fontFamily.bold, fontSize: 16 },
+  attendanceHint: { color: theme.colors.textMuted, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.size.sm, marginBottom: theme.spacing.sm },
+  attendanceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: theme.colors.surface, borderRadius: theme.border.radius.md, padding: theme.spacing.sm, marginBottom: theme.spacing.xs },
+  attendanceName: { flex: 1, color: theme.colors.text, fontFamily: theme.typography.fontFamily.semiBold, marginRight: theme.spacing.sm },
+  attendanceActions: { flexDirection: 'row', gap: theme.spacing.xs },
+  attendanceBtn: { paddingHorizontal: theme.spacing.md, paddingVertical: 6, borderRadius: theme.border.radius.round, borderWidth: 1, borderColor: theme.colors.textMuted },
+  attendanceBtnPresent: { backgroundColor: '#4CAF50', borderColor: '#4CAF50' },
+  attendanceBtnAbsent: { backgroundColor: theme.colors.error, borderColor: theme.colors.error },
+  attendanceBtnText: { color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.size.sm },
+  attendanceBtnTextActive: { color: '#fff' },
   commentCard: { backgroundColor: theme.colors.surface, borderRadius: theme.border.radius.md, padding: theme.spacing.md, marginBottom: theme.spacing.sm },
   commentHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.xs },
   commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.surfaceElevated, justifyContent: 'center', alignItems: 'center', marginRight: theme.spacing.sm },
