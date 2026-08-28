@@ -49,6 +49,7 @@ export const updateProfileSchema = z.object({
   bio: z.string().max(500).optional(),
   city: z.string().max(100).optional(),
   region: z.string().max(100).optional(),
+  locality: z.string().max(100).optional(),
   country: z.string().max(100).optional(),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
@@ -71,6 +72,7 @@ export const createEventSchema = z.object({
   locationName: z.string().max(200).optional(),
   city: z.string().max(100).optional(),
   region: z.string().max(100).optional(),
+  locality: z.string().max(100).optional(),
   country: z.string().max(100).optional(),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
@@ -120,12 +122,16 @@ export const createPostSchema = z.object({
   content: z.string().max(5000).optional(),
   category: z.nativeEnum(PostCategory).default(PostCategory.GENERAL),
   mediaIds: z.array(z.string()).max(10).optional(),
+  tags: z.array(z.string()).max(50).optional(),
 });
+
+export const updatePostSchema = createPostSchema.partial();
 
 // ─── Comment Schemas ─────────────────────────────────────
 
 export const createCommentSchema = z.object({
   content: z.string().min(1, 'Comment cannot be empty').max(2000),
+  parentCommentId: z.string().optional(),
 });
 
 // ─── Report Schemas ──────────────────────────────────────
@@ -146,6 +152,7 @@ export type UpdateEventInput = z.infer<typeof updateEventSchema>;
 export type CreateRouteInput = z.infer<typeof createRouteSchema>;
 export type EventQueryInput = z.infer<typeof eventQuerySchema>;
 export type CreatePostInput = z.infer<typeof createPostSchema>;
+export type UpdatePostInput = z.infer<typeof updatePostSchema>;
 export type CreateCommentInput = z.infer<typeof createCommentSchema>;
 export type CreateReportInput = z.infer<typeof createReportSchema>;
 

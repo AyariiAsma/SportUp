@@ -1,6 +1,6 @@
 import {
   View, Text, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator,
-  Alert, Platform, Share, TextInput, TouchableOpacity, KeyboardAvoidingView, Linking
+  Alert, Platform, Share, TextInput, TouchableOpacity, KeyboardAvoidingView, Linking, RefreshControl
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -9,13 +9,17 @@ import { theme } from '../../../src/theme';
 import { Button } from '../../../src/components/common/Button';
 import { format, formatDistanceToNow } from 'date-fns';
 import { useAuthStore } from '../../../src/stores/auth.store';
-import MapView, { Marker, Polyline } from '../../../src/components/common/MapView';
 import { useState, useRef } from 'react';
 import type { EventComment } from '@sportup/shared';
 import ViewShot from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { EventFlyer } from '../../../src/components/events/EventFlyer';
+import { Image } from 'react-native';
+import { OnlineIndicator } from '../../../src/components/common/OnlineIndicator';
+import { InviteModal } from '../../../src/components/common/InviteModal';
+import { resolveMediaUrl } from '../../../src/services/post.service';
+import { MentionTextInput, CommentText } from '../../../src/components/common/MentionTextInput';
 
 const DIFFICULTY_COLOR: Record<string, string> = {
   BEGINNER: '#4CAF50',
@@ -30,13 +34,15 @@ export default function EventDetailScreen() {
   const queryClient = useQueryClient();
   const { user } = useAuthStore();
   const [commentText, setCommentText] = useState('');
-  const viewShotRef = useRef<ViewShot>(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const viewShotRef = useRef<any>(null);
   const insets = useSafeAreaInsets();
 
-  const { data: event, isLoading, error } = useQuery({
+  const { data: rawEvent, isLoading, isRefetching, error, refetch } = useQuery({
     queryKey: ['event', id],
     queryFn: () => eventService.getEventById(id as string),
   });
+  const event = rawEvent as any;
 
   const joinMutation = useMutation({
     mutationFn: () => eventService.joinEvent(id as string),
@@ -76,8 +82,18 @@ export default function EventDetailScreen() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['event', id] }),
   });
 
+  const likeMutation = useMutation({
+    mutationFn: () => eventService.likeEvent(id as string),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['event', id] }),
+  });
+
+  const likeCommentMutation = useMutation({
+    mutationFn: (commentId: string) => eventService.likeComment(id as string, commentId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['event', id] }),
+  });
+
   const deleteMutation = useMutation({
-    mutationFn: () => eventService.deleteEvent ? eventService.deleteEvent(id as string) : api.delete(`/events/${id}`),
+    mutationFn: () => eventService.deleteEvent(id as string),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['my-events'] });
@@ -92,6 +108,12 @@ export default function EventDetailScreen() {
 
   const shareEvent = async () => {
     if (!event) return;
+    const fullAddress = [event.locationName, event.locality, event.city, event.region, event.country]
+      .filter(Boolean)
+      .join(', ') || 'See location in app';
+
+    const shareMessage = `🏃 ${event.title}\n\n${event.distanceKm ? `📏 ${event.distanceKm} KM\n` : ''}📍 ${fullAddress}\n🗓 ${format(new Date(event.startAt), 'EEEE, MMMM d')}\n⏰ ${format(new Date(event.startAt), 'h:mm a')}\n\nJoin us on SportUp!`;
+
     try {
       if (viewShotRef.current && viewShotRef.current.capture) {
         const uri = await viewShotRef.current.capture();
@@ -103,14 +125,10 @@ export default function EventDetailScreen() {
             UTI: 'public.png',
           });
         } else {
-          await Share.share({
-            message: `🏃 ${event.title}\n\n${event.distanceKm ? `📏 ${event.distanceKm} KM\n` : ''}📍 ${event.city || event.locationName || 'See location in app'}\n🗓 ${format(new Date(event.startAt), 'EEEE, MMMM d')}\n⏰ ${format(new Date(event.startAt), 'h:mm a')}\n\nJoin us on SportUp!`,
-          });
+          await Share.share({ message: shareMessage });
         }
       } else {
-        await Share.share({
-          message: `🏃 ${event.title}\n\n${event.distanceKm ? `📏 ${event.distanceKm} KM\n` : ''}📍 ${event.city || event.locationName || 'See location in app'}\n🗓 ${format(new Date(event.startAt), 'EEEE, MMMM d')}\n⏰ ${format(new Date(event.startAt), 'h:mm a')}\n\nJoin us on SportUp!`,
-        });
+        await Share.share({ message: shareMessage });
       }
     } catch (err) {
       console.error('Error sharing flyer:', err);
@@ -143,6 +161,23 @@ export default function EventDetailScreen() {
     const isOwn = item.authorId === user?.id;
     const timeAgo = formatDistanceToNow(new Date(item.createdAt), { addSuffix: true });
 
+    const CommentLikeButton = ({ comment }: { comment: EventComment }) => (
+      <TouchableOpacity
+        style={styles.commentLikeBtn}
+        onPress={() => likeCommentMutation.mutate(comment.id)}
+        activeOpacity={0.7}
+      >
+        <Text style={[styles.commentLikeIcon, comment.isLiked && styles.commentLikedIcon]}>
+          {comment.isLiked ? '❤️' : '🤍'}
+        </Text>
+        {(comment.likesCount ?? 0) > 0 && (
+          <Text style={[styles.commentLikeCount, comment.isLiked && styles.commentLikedCount]}>
+            {comment.likesCount}
+          </Text>
+        )}
+      </TouchableOpacity>
+    );
+
     return (
       <View style={styles.commentCard}>
         <View style={styles.commentHeader}>
@@ -153,13 +188,45 @@ export default function EventDetailScreen() {
             <Text style={styles.commentAuthor}>{item.author.name}</Text>
             <Text style={styles.commentTime}>{timeAgo}</Text>
           </View>
-          {(isOwn || isOrganizer) && (
-            <TouchableOpacity onPress={() => deleteCommentMutation.mutate(item.id)}>
-              <Text style={styles.deleteComment}>🗑</Text>
-            </TouchableOpacity>
-          )}
+          <View style={styles.commentActions}>
+            <CommentLikeButton comment={item} />
+            {(isOwn || isOrganizer) && (
+              <TouchableOpacity onPress={() => deleteCommentMutation.mutate(item.id)}>
+                <Text style={styles.deleteComment}>🗑</Text>
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
-        <Text style={styles.commentContent}>{item.content}</Text>
+        <CommentText text={item.content} style={styles.commentContent} />
+        {/* Replies */}
+        {item.replies && item.replies.length > 0 && (
+          <View style={styles.repliesContainer}>
+            {item.replies.map((reply: EventComment) => (
+              <View key={reply.id} style={styles.replyCard}>
+                <View style={styles.commentHeader}>
+                  <View style={[styles.commentAvatar, styles.replyAvatar]}>
+                    <Text style={styles.commentAvatarLetter}>{reply.author.name.charAt(0)}</Text>
+                  </View>
+                  <View style={styles.commentMeta}>
+                    <Text style={styles.commentAuthor}>{reply.author.name}</Text>
+                    <Text style={styles.commentTime}>
+                      {formatDistanceToNow(new Date(reply.createdAt), { addSuffix: true })}
+                    </Text>
+                  </View>
+                  <View style={styles.commentActions}>
+                    <CommentLikeButton comment={reply} />
+                    {(reply.authorId === user?.id || isOrganizer) && (
+                      <TouchableOpacity onPress={() => deleteCommentMutation.mutate(reply.id)}>
+                        <Text style={styles.deleteComment}>🗑</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+                <CommentText text={reply.content} style={[styles.commentContent, { marginLeft: 8 }]} />
+              </View>
+            ))}
+          </View>
+        )}
       </View>
     );
   };
@@ -171,7 +238,18 @@ export default function EventDetailScreen() {
         style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={refetch}
+              tintColor={theme.colors.primary}
+              colors={[theme.colors.primary]}
+            />
+          }
+        >
           {/* ── Header Row (Back Button + Badges) ── */}
           <View style={[styles.headerRow, { paddingTop: Math.max(insets.top, theme.spacing.md) }]}>
             <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
@@ -240,104 +318,105 @@ export default function EventDetailScreen() {
             <Text style={styles.description}>{event.description}</Text>
           </View>
 
-          {/* ── Map & Route Section ── */}
-          {(() => {
-            let parsedRoutePoints: Array<{ lat: number, lng: number }> = [];
-            if (event.route?.points) {
-              try {
-                const pts = typeof event.route.points === 'string'
-                  ? JSON.parse(event.route.points)
-                  : event.route.points;
-                if (Array.isArray(pts)) {
-                  const sortedPts = [...pts].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-                  parsedRoutePoints = sortedPts.map(p => ({ lat: p.lat, lng: p.lng }));
+          {/* ── Location Section ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>📍 Location</Text>
+            {event.locationName ? <Text style={styles.locationName}>{event.locationName}</Text> : null}
+            {(event.locality || event.city || event.region || event.country) && (
+              <Text style={styles.city}>
+                {[event.locality, event.city, event.region, event.country].filter(Boolean).join(', ')}
+              </Text>
+            )}
+
+            <Button
+              title="Get Directions 🗺️"
+              variant="outline"
+              onPress={() => {
+                const fullAddressString = [event.locationName, event.locality, event.city, event.region, event.country]
+                  .filter(Boolean)
+                  .join(', ');
+                
+                if (!fullAddressString && (event.lat == null || event.lng == null)) {
+                  Alert.alert('No Location', 'Location details are not specified for this run.');
+                  return;
                 }
-              } catch {
-                parsedRoutePoints = [];
-              }
-            }
 
-            const handleGetDirections = () => {
-              if (event.lat == null || event.lng == null) return;
-              const url = Platform.select({
-                ios: `maps://app?saddr=&daddr=${event.lat},${event.lng}`,
-                android: `google.navigation:q=${event.lat},${event.lng}`,
-                default: `https://www.google.com/maps/dir/?api=1&destination=${event.lat},${event.lng}`,
-              });
-              Linking.openURL(url).catch(() => {
-                Alert.alert('Error', 'Could not open navigation application.');
-              });
-            };
-
-            return (
-              <View style={styles.section}>
-                <Text style={styles.sectionTitle}>📍 Location & Route</Text>
-                {event.locationName ? <Text style={styles.locationName}>{event.locationName}</Text> : null}
-                {event.city ? (
-                  <Text style={styles.city}>
-                    {event.city}{event.region ? `, ${event.region}` : ''}{event.country ? `, ${event.country}` : ''}
-                  </Text>
-                ) : null}
-
-                <View style={styles.mapContainer}>
-                  <MapView
-                    style={styles.map}
-                    initialRegion={{
-                      latitude: event.lat,
-                      longitude: event.lng,
-                      latitudeDelta: 0.02,
-                      longitudeDelta: 0.02,
-                    }}
-                    scrollEnabled={true}
-                    zoomEnabled={true}
-                    routeCoordinates={parsedRoutePoints}
-                  >
-                    <Marker coordinate={{ latitude: event.lat, longitude: event.lng }} />
-                    {parsedRoutePoints.map((pt, idx) => (
-                      <Marker 
-                        key={idx} 
-                        coordinate={{ latitude: pt.lat, longitude: pt.lng }} 
-                        pinColor="#ff6b35"
-                      />
-                    ))}
-                    {parsedRoutePoints.length > 0 && (
-                      <Polyline
-                        coordinates={[
-                          { latitude: event.lat, longitude: event.lng },
-                          ...parsedRoutePoints.map(p => ({ latitude: p.lat, longitude: p.lng }))
-                        ]}
-                        strokeColor="#ff6b35"
-                        strokeWidth={4}
-                      />
-                    )}
-                  </MapView>
-                </View>
-
-                <Button
-                  title="Get Directions 🗺️"
-                  variant="outline"
-                  onPress={handleGetDirections}
-                  style={{ marginTop: theme.spacing.sm }}
-                />
-              </View>
-            );
-          })()}
+                const query = encodeURIComponent(fullAddressString || `${event.lat},${event.lng}`);
+                const url = Platform.select({
+                  ios: `maps://app?daddr=${query}`,
+                  android: `google.navigation:q=${query}`,
+                  default: `https://www.google.com/maps/search/?api=1&query=${query}`,
+                });
+                Linking.openURL(url).catch(() => {
+                  Alert.alert('Error', 'Could not open navigation application.');
+                });
+              }}
+              style={{ marginTop: theme.spacing.sm }}
+            />
+          </View>
 
           {/* ── Participants ── */}
-          {event.participants && event.participants.length > 0 && (
-            <View style={styles.section}>
+          <View style={styles.section}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.sm }}>
               <Text style={styles.sectionTitle}>👟 Participants</Text>
+              <TouchableOpacity
+                onPress={() => setShowInviteModal(true)}
+                style={{
+                  backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                  paddingHorizontal: theme.spacing.md,
+                  paddingVertical: 6,
+                  borderRadius: theme.border.radius.round,
+                }}
+              >
+                <Text style={{ color: theme.colors.primary, fontFamily: theme.typography.fontFamily.bold, fontSize: theme.typography.size.sm }}>
+                  + Invite
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {event.participants && event.participants.length > 0 ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.participantsList}>
-                  {event.participants.map((p) => (
-                    <View key={p.id} style={styles.participantAvatar}>
-                      <Text style={styles.participantLetter}>{p.user.name.charAt(0)}</Text>
+                  {event.participants.map((p: any) => (
+                    <View key={p.id} style={styles.participantAvatarContainer}>
+                      {p.user.avatar ? (
+                        <Image source={{ uri: resolveMediaUrl(p.user.avatar) }} style={styles.participantAvatarImg} />
+                      ) : (
+                        <View style={styles.participantAvatarPlaceholder}>
+                          <Text style={styles.participantLetter}>{p.user.name.charAt(0)}</Text>
+                        </View>
+                      )}
+                      <OnlineIndicator isOnline={p.user.isOnline} size="sm" />
                     </View>
                   ))}
                 </View>
               </ScrollView>
-            </View>
-          )}
+            ) : (
+              <Text style={styles.noComments}>No participants yet.</Text>
+            )}
+          </View>
+
+          <InviteModal
+            eventId={event.id}
+            visible={showInviteModal}
+            onClose={() => setShowInviteModal(false)}
+          />
+
+          {/* ── Like Event ── */}
+          <TouchableOpacity
+            style={[styles.eventLikeBtn, event.isLiked && styles.eventLikeBtnActive]}
+            onPress={() => likeMutation.mutate()}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.eventLikeEmoji}>{event.isLiked ? '❤️' : '🤍'}</Text>
+            <Text style={[styles.eventLikeText, event.isLiked && styles.eventLikeTextActive]}>
+              {event.isLiked ? 'Liked' : 'Like this run'}
+            </Text>
+            {(event.likesCount ?? 0) > 0 && (
+              <Text style={[styles.eventLikeCount, event.isLiked && styles.eventLikeTextActive]}>
+                · {event.likesCount} {event.likesCount === 1 ? 'like' : 'likes'}
+              </Text>
+            )}
+          </TouchableOpacity>
 
           {/* ── Comments ── */}
           <View style={styles.section}>
@@ -346,7 +425,7 @@ export default function EventDetailScreen() {
             </Text>
 
             {event.comments && event.comments.length > 0 ? (
-              event.comments.map((c) => (
+              event.comments.map((c: any) => (
                 <View key={c.id}>
                   {renderComment({ item: c })}
                 </View>
@@ -355,16 +434,12 @@ export default function EventDetailScreen() {
               <Text style={styles.noComments}>No comments yet. Be the first!</Text>
             )}
 
-            {/* Comment input */}
+            {/* Comment input with @mention */}
             <View style={styles.commentInputRow}>
-              <TextInput
-                style={styles.commentInput}
-                placeholder="Add a comment..."
-                placeholderTextColor={theme.colors.textMuted}
+              <MentionTextInput
                 value={commentText}
                 onChangeText={setCommentText}
-                multiline
-                returnKeyType="send"
+                placeholder="Add a comment... type @ to mention"
               />
               <TouchableOpacity
                 style={[styles.sendBtn, !commentText.trim() && styles.sendBtnDisabled]}
@@ -471,20 +546,29 @@ const styles = StyleSheet.create({
   description: { color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.regular, lineHeight: 22 },
   locationName: { color: theme.colors.text, fontFamily: theme.typography.fontFamily.semiBold, marginBottom: 2 },
   city: { color: theme.colors.textMuted, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.size.sm, marginBottom: theme.spacing.sm },
-  mapContainer: { height: 180, borderRadius: theme.border.radius.lg, overflow: 'hidden', backgroundColor: theme.colors.surfaceElevated },
-  map: { width: '100%', height: '100%' },
   participantsList: { flexDirection: 'row', gap: theme.spacing.sm },
-  participantAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surfaceElevated, justifyContent: 'center', alignItems: 'center' },
+  participantAvatarContainer: { position: 'relative', width: 40, height: 40 },
+  participantAvatarImg: { width: 40, height: 40, borderRadius: 20 },
+  participantAvatarPlaceholder: { width: 40, height: 40, borderRadius: 20, backgroundColor: theme.colors.surfaceElevated, justifyContent: 'center', alignItems: 'center' },
   participantLetter: { color: theme.colors.text, fontFamily: theme.typography.fontFamily.bold, fontSize: 16 },
   commentCard: { backgroundColor: theme.colors.surface, borderRadius: theme.border.radius.md, padding: theme.spacing.md, marginBottom: theme.spacing.sm },
   commentHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.xs },
   commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.surfaceElevated, justifyContent: 'center', alignItems: 'center', marginRight: theme.spacing.sm },
+  replyAvatar: { width: 26, height: 26, borderRadius: 13 },
   commentAvatarLetter: { color: theme.colors.text, fontFamily: theme.typography.fontFamily.bold, fontSize: 14 },
   commentMeta: { flex: 1 },
   commentAuthor: { color: theme.colors.text, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.size.sm },
   commentTime: { color: theme.colors.textMuted, fontFamily: theme.typography.fontFamily.regular, fontSize: 11 },
+  commentActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   deleteComment: { fontSize: 14 },
+  commentLikeBtn: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 4, paddingVertical: 2 },
+  commentLikeIcon: { fontSize: 14 },
+  commentLikedIcon: { fontSize: 14 },
+  commentLikeCount: { color: theme.colors.textMuted, fontSize: 11, fontFamily: theme.typography.fontFamily.medium },
+  commentLikedCount: { color: theme.colors.primary },
   commentContent: { color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.regular, lineHeight: 20 },
+  repliesContainer: { marginTop: theme.spacing.sm, marginLeft: theme.spacing.lg, gap: theme.spacing.xs },
+  replyCard: { backgroundColor: theme.colors.surfaceElevated, borderRadius: theme.border.radius.sm, padding: theme.spacing.sm, marginTop: 4 },
   noComments: { color: theme.colors.textMuted, fontFamily: theme.typography.fontFamily.regular, fontStyle: 'italic' },
   commentInputRow: { flexDirection: 'row', alignItems: 'flex-end', marginTop: theme.spacing.md, gap: theme.spacing.sm },
   commentInput: { flex: 1, backgroundColor: theme.colors.surface, borderRadius: theme.border.radius.lg, padding: theme.spacing.md, color: theme.colors.text, fontFamily: theme.typography.fontFamily.regular, maxHeight: 100, minHeight: 44 },
@@ -497,4 +581,17 @@ const styles = StyleSheet.create({
   flexBtn: { flex: 1 },
   joinedPill: { flex: 1, backgroundColor: 'rgba(76,175,80,0.12)', borderRadius: theme.border.radius.round, height: 44, justifyContent: 'center', alignItems: 'center' },
   joinedText: { color: '#4CAF50', fontFamily: theme.typography.fontFamily.bold, fontSize: theme.typography.size.sm },
+  eventLikeBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 8, marginHorizontal: theme.spacing.md, marginBottom: theme.spacing.md,
+    backgroundColor: theme.colors.surface, borderRadius: theme.border.radius.round,
+    paddingVertical: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+  },
+  eventLikeBtnActive: {
+    backgroundColor: 'rgba(255, 107, 53, 0.1)', borderColor: theme.colors.primary,
+  },
+  eventLikeEmoji: { fontSize: 20 },
+  eventLikeText: { color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.size.md },
+  eventLikeTextActive: { color: theme.colors.primary },
+  eventLikeCount: { color: theme.colors.textMuted, fontFamily: theme.typography.fontFamily.medium, fontSize: theme.typography.size.md },
 });

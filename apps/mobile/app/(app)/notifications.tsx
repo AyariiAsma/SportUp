@@ -39,6 +39,10 @@ export default function NotificationCenterScreen() {
           if (!item.read) {
             markReadMutation.mutate(item.id);
           }
+          const eventId = item.metadata?.eventId || item.data?.eventId;
+          if (eventId) {
+            router.push(`/(app)/event/${eventId}`);
+          }
         }}
         activeOpacity={0.8}
       >

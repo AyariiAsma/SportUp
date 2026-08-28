@@ -11,16 +11,13 @@ import { api } from '../../../src/services/api';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState, useEffect } from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import MapView, { Marker, Polyline } from '../../../src/components/common/MapView';
-import * as Location from 'expo-location';
-import { getDistanceKm } from '../../../src/utils/distance';
+import { AddressSelector } from '../../../src/components/common/AddressSelector';
 export default function EditEventScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState(1); // 1 = Details, 2 = Route Map
-  const [mapMode, setMapMode] = useState<'start' | 'route'>('start');
+  const [step, setStep] = useState(1); // 1 = Details, 2 = Location
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [pickedDate, setPickedDate] = useState<Date>(new Date(Date.now() + 86400000));
@@ -33,9 +30,6 @@ export default function EditEventScreen() {
   const { control, handleSubmit, formState: { errors }, setValue, watch, reset } = useForm<UpdateEventInput>({
     resolver: zodResolver(updateEventSchema),
   });
-
-  const [selectedCoord, setSelectedCoord] = useState<{lat: number; lng: number}>({ lat: 48.8566, lng: 2.3522 });
-  const [routeCoords, setRouteCoords] = useState<Array<{ lat: number; lng: number }>>([]);
 
   const watchDistanceKm = watch('distanceKm');
 
@@ -53,89 +47,15 @@ export default function EditEventScreen() {
         locationName: event.locationName || '',
         city: event.city || '',
         region: event.region || '',
-        country: event.country || '',
+        locality: (event as any).locality || '',
         country: event.country || '',
       });
       setPickedDate(new Date(event.startAt));
-      setSelectedCoord({ lat: event.lat, lng: event.lng });
-      
-      // Load existing route points if any
-      if (event.route?.points) {
-        try {
-          const pts = typeof event.route.points === 'string' 
-            ? JSON.parse(event.route.points) 
-            : event.route.points;
-          if (Array.isArray(pts)) {
-            const sortedPts = [...pts].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-            setRouteCoords(sortedPts.map(p => ({ lat: p.lat, lng: p.lng })));
-          }
-        } catch {
-          setRouteCoords([]);
-        }
-      }
     }
   }, [event]);
 
   const selectedDifficulty = watch('difficulty');
 
-  // Sync coords
-  useEffect(() => {
-    setValue('lat', selectedCoord.lat);
-    setValue('lng', selectedCoord.lng);
-  }, [selectedCoord]);
-
-  // Recalculate route distance in KM when routeCoords change
-  useEffect(() => {
-    if (routeCoords.length === 0) {
-      return;
-    }
-    let totalDist = 0;
-    let prev = selectedCoord;
-    for (const pt of routeCoords) {
-      totalDist += getDistanceKm(prev.lat, prev.lng, pt.lat, pt.lng);
-      prev = pt;
-    }
-    setValue('distanceKm', Math.round(totalDist * 10) / 10);
-  }, [routeCoords, selectedCoord]);
-
-  const triggerReverseGeocoding = async (lat: number, lng: number) => {
-    try {
-      const geocode = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-      if (geocode && geocode.length > 0) {
-        const g = geocode[0];
-        setValue('locationName', g.street || g.name || 'Custom Meeting Point');
-        setValue('city', g.city || g.subregion || g.region || '');
-        setValue('region', g.region || '');
-        setValue('country', g.country || '');
-      }
-    } catch {
-      // Fallback
-    }
-  };
-
-  const useCurrentGPS = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const nextCoords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
-      setSelectedCoord(nextCoords);
-      triggerReverseGeocoding(nextCoords.lat, nextCoords.lng);
-    } catch {}
-  };
-
-  const handleMapPress = (e: any) => {
-    const coordinate = e.nativeEvent?.coordinate;
-    if (!coordinate) return;
-
-    if (mapMode === 'start') {
-      const nextCoords = { lat: coordinate.latitude, lng: coordinate.longitude };
-      setSelectedCoord(nextCoords);
-      triggerReverseGeocoding(nextCoords.lat, nextCoords.lng);
-    } else {
-      setRouteCoords(prev => [...prev, { lat: coordinate.latitude, lng: coordinate.longitude }]);
-    }
-  };
 
   const onSubmit = async (data: UpdateEventInput) => {
     try {
@@ -148,9 +68,6 @@ export default function EditEventScreen() {
       await api.patch(`/events/${id}`, {
         ...data,
         startAt: startAtDate ? startAtDate.toISOString() : undefined,
-        lat: selectedCoord.lat,
-        lng: selectedCoord.lng,
-        routeCoordinates: routeCoords,
       });
 
       queryClient.invalidateQueries({ queryKey: ['event', id] });
@@ -186,7 +103,7 @@ export default function EditEventScreen() {
         <View style={styles.progressLine} />
         <View style={[styles.progressStep, step >= 2 && styles.progressActive]}>
           <Text style={styles.progressStepNum}>2</Text>
-          <Text style={styles.progressStepLabel}>Route</Text>
+          <Text style={styles.progressStepLabel}>Location</Text>
         </View>
       </View>
 
@@ -379,108 +296,39 @@ export default function EditEventScreen() {
 
         {step === 2 && (
           <View>
-            <Text style={styles.pageTitle}>🗺️ Edit Route & Location</Text>
+            <Text style={styles.pageTitle}>📍 Edit Location</Text>
 
-            <View style={styles.mapControlsRow}>
-              <TouchableOpacity 
-                style={[styles.controlTab, mapMode === 'start' && styles.controlTabActive]} 
-                onPress={() => setMapMode('start')}
-              >
-                <Text style={[styles.controlTabText, mapMode === 'start' && styles.controlTabTextActive]}>📍 Start Point</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.controlTab, mapMode === 'route' && styles.controlTabActive]} 
-                onPress={() => setMapMode('route')}
-              >
-                <Text style={[styles.controlTabText, mapMode === 'route' && styles.controlTabTextActive]}>✏️ Draw Route</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.mapBoxContainer}>
-              <MapView
-                style={styles.map}
-                initialRegion={{
-                  latitude: selectedCoord.lat,
-                  longitude: selectedCoord.lng,
-                  latitudeDelta: 0.03,
-                  longitudeDelta: 0.03,
-                }}
-                onPress={handleMapPress}
-                routeCoordinates={routeCoords}
-              >
-                <Marker coordinate={{ latitude: selectedCoord.lat, longitude: selectedCoord.lng }} />
-                {routeCoords.map((pt, idx) => (
-                  <Marker key={idx} coordinate={{ latitude: pt.lat, longitude: pt.lng }} pinColor="#ff6b35" />
-                ))}
-                {routeCoords.length > 0 && (
-                  <Polyline 
-                    coordinates={[{ latitude: selectedCoord.lat, longitude: selectedCoord.lng }, ...routeCoords.map(c => ({ latitude: c.lat, longitude: c.lng }))]}
-                    strokeColor="#ff6b35"
-                    strokeWidth={4}
-                  />
-                )}
-              </MapView>
-            </View>
-
-            <View style={styles.routeStatsBox}>
-              <Text style={styles.routeStatLabel}>🏃 Route Distance</Text>
-              <Text style={styles.routeStatValue}>{watchDistanceKm} KM</Text>
-            </View>
-
-            <View style={styles.gpsRow}>
-              <Button title="Use GPS Location 📍" variant="secondary" onPress={useCurrentGPS} style={styles.flexBtn} />
-              {routeCoords.length > 0 && (
-                <Button title="Clear Route 🗑" variant="outline" onPress={() => setRouteCoords([])} style={[styles.flexBtn, { marginLeft: theme.spacing.sm }]} />
+            <Controller
+              control={control}
+              name="region"
+              render={({ field: { onChange, value } }) => (
+                <AddressSelector
+                  initialRegion={value}
+                  initialCity={watch('city')}
+                  initialLocality={watch('locality')}
+                  onChange={(region, city, locality) => {
+                    setValue('region', region, { shouldValidate: true });
+                    setValue('city', city, { shouldValidate: true });
+                    setValue('locality', locality, { shouldValidate: true });
+                  }}
+                />
               )}
-            </View>
+            />
 
-            <Text style={styles.sectionTitle}>Start Address Details</Text>
             <Controller
               control={control}
               name="locationName"
-              render={({ field: { onChange, value } }) => (
+              render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  label="Meeting Point Name"
-                  placeholder="e.g. Main Gate Entrance"
+                  label="Additional Details (Optional)"
+                  placeholder="e.g. Near the main entrance"
+                  onBlur={onBlur}
                   onChangeText={onChange}
-                  value={value || ''}
+                  value={value}
+                  error={errors.locationName?.message}
                 />
               )}
             />
-
-            <Controller
-              control={control}
-              name="city"
-              render={({ field: { onChange, value } }) => (
-                <TextInput
-                  label="City"
-                  placeholder="e.g. Tunis"
-                  onChangeText={onChange}
-                  value={value || ''}
-                />
-              )}
-            />
-
-            <View style={styles.row}>
-              <View style={styles.col}>
-                <Controller
-                  control={control}
-                  name="region"
-                  render={({ field: { onChange, value } }) => (
-                    <TextInput label="Region" onChangeText={onChange} value={value || ''} />
-                  )}
-                />
-              </View>
-              <View style={styles.col}>
-                <Controller
-                  control={control}
-                  name="country"
-                  render={({ field: { onChange, value } }) => (
-                    <TextInput label="Country" onChangeText={onChange} value={value || ''} />
-                  )}
-                />
-              </View>
-            </View>
 
             <View style={styles.row}>
               <Button title="← Back" variant="ghost" onPress={() => setStep(1)} style={styles.flexBtn} />

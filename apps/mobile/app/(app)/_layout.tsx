@@ -4,7 +4,10 @@ import { useAuthStore } from '../../src/stores/auth.store';
 import { useLocationStore } from '../../src/stores/location.store';
 import { useOnboardingStore } from '../../src/stores/onboarding.store';
 import { theme } from '../../src/theme';
-import { ActivityIndicator, View, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, StyleSheet, AppState } from 'react-native';
+import { api } from '../../src/services/api';
+
+const PRESENCE_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 export default function AppLayout() {
   const { isAuthenticated, isLoading: authLoading } = useAuthStore();
@@ -18,15 +21,39 @@ export default function AppLayout() {
     loadOnboardingState();
   }, []);
 
+  // Presence heartbeat: mark user as online while app is active
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const sendHeartbeat = () => {
+      api.post('/users/presence').catch(() => {/* silent */});
+    };
+
+    // Send immediately on mount
+    sendHeartbeat();
+
+    const interval = setInterval(sendHeartbeat, PRESENCE_INTERVAL_MS);
+
+    // Also react to app coming to foreground
+    const appStateSub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') sendHeartbeat();
+    });
+
+    return () => {
+      clearInterval(interval);
+      appStateSub.remove();
+    };
+  }, [isAuthenticated]);
+
   useEffect(() => {
     if (authLoading) return;
 
     if (!isAuthenticated) {
       router.replace('/(auth)/welcome');
-    } else if (!hasCompletedOnboarding && segments[1] !== 'onboarding') {
+    } else if (!hasCompletedOnboarding && (segments as any)[1] !== 'onboarding') {
       // First-time user: send to running level picker
       router.replace('/onboarding');
-    } else if (!hasLocation && segments[1] !== 'location' && segments[1] !== 'onboarding') {
+    } else if (!hasLocation && (segments as any)[1] !== 'location' && (segments as any)[1] !== 'onboarding') {
       // After onboarding: set location
       router.replace('/(app)/location');
     }

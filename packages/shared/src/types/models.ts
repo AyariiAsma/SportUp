@@ -34,6 +34,7 @@ export interface User {
   bio?: string | null;
   city?: string | null;
   region?: string | null;
+  locality?: string | null;
   country?: string | null;
   lat?: number | null;
   lng?: number | null;
@@ -41,6 +42,8 @@ export interface User {
   preferredSports: string[];
   totalDistanceKm: number;
   isVerified: boolean;
+  isOnline?: boolean;
+  lastSeenAt?: string | null;
   createdAt: string;
 }
 
@@ -88,12 +91,15 @@ export interface SportEvent {
   locationName?: string | null;
   city?: string | null;
   region?: string | null;
+  locality?: string | null;
   country?: string | null;
   lat: number;
   lng: number;
   coverImage?: string | null;
   videoUrl?: string | null;
   metadata?: Record<string, unknown>;
+  likesCount?: number;
+  isLiked?: boolean;
   participantCount: number;
   isJoined: boolean; // always present
   route?: EventRoute | null;
@@ -122,6 +128,10 @@ export interface EventComment {
   authorId: string;
   author: Pick<User, 'id' | 'name' | 'username' | 'avatar'>;
   content: string;
+  likesCount?: number;
+  isLiked?: boolean;
+  parentCommentId?: string | null;
+  replies?: EventComment[];
   createdAt: string;
   updatedAt: string;
 }

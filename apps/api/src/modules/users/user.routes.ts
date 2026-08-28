@@ -22,6 +22,8 @@ async function buildUserProfile(userId: string, currentUserId?: string | null) {
       totalDistanceKm: true,
       preferredSports: true,
       isVerified: true,
+      isOnline: true,
+      lastSeenAt: true,
       createdAt: true,
       _count: {
         select: {
@@ -72,7 +74,32 @@ async function buildUserProfile(userId: string, currentUserId?: string | null) {
 }
 
 export async function userRoutes(app: FastifyInstance) {
+  // ─── Search Users ──────────────────────────────────────
+
+  app.get('/search', async (request, reply) => {
+    const { q = '', limit = '10' } = request.query as { q?: string; limit?: string };
+
+    if (!q || q.length < 2) {
+      return reply.send({ success: true, data: [] });
+    }
+
+    const users = await prisma.user.findMany({
+      where: {
+        isActive: true,
+        OR: [
+          { username: { contains: q, mode: 'insensitive' } },
+          { name: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      take: Math.min(parseInt(limit), 20),
+      select: { id: true, name: true, username: true, avatar: true, isOnline: true },
+    });
+
+    return reply.send({ success: true, data: users });
+  });
+
   // ─── Get Own Profile ───────────────────────────────────
+
 
   app.get('/me', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id } = request.user as { id: string };
@@ -162,5 +189,43 @@ export async function userRoutes(app: FastifyInstance) {
 
     await prisma.follow.deleteMany({ where: { followerId, followingId } });
     return reply.send({ success: true, message: 'Unfollowed' });
+  });
+
+  // ─── Presence Heartbeat ────────────────────────────────
+
+  app.post('/presence', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: userId } = request.user as { id: string };
+    
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        isOnline: true,
+        lastSeenAt: new Date(),
+      }
+    });
+
+    return reply.send({ success: true });
+  });
+
+  // ─── Get Online / Active Users ─────────────────────────
+
+  app.get('/online', async (request, reply) => {
+    const users = await prisma.user.findMany({
+      where: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        avatar: true,
+        city: true,
+        runningLevel: true,
+        isOnline: true,
+        lastSeenAt: true,
+      },
+      orderBy: [{ isOnline: 'desc' }, { lastSeenAt: 'desc' }],
+      take: 50,
+    });
+
+    return reply.send({ success: true, data: users });
   });
 }

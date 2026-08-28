@@ -1,6 +1,6 @@
 import {
   View, Text, StyleSheet, SafeAreaView, FlatList,
-  ActivityIndicator, TouchableOpacity, ScrollView
+  ActivityIndicator, TouchableOpacity, ScrollView, RefreshControl, Image
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -8,6 +8,9 @@ import { theme } from '../../../src/theme';
 import { useLocationStore } from '../../../src/stores/location.store';
 import { useAuthStore } from '../../../src/stores/auth.store';
 import { eventService } from '../../../src/services/event.service';
+import { userSearchService } from '../../../src/services/user.service';
+import { OnlineIndicator } from '../../../src/components/common/OnlineIndicator';
+import { resolveMediaUrl } from '../../../src/services/post.service';
 import { EventCard } from '../../../src/components/events/EventCard';
 import { format } from 'date-fns';
 
@@ -20,14 +23,25 @@ function getGreeting(): string {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { latitude, longitude, city } = useLocationStore();
+  const { latitude, longitude } = useLocationStore();
   const { user } = useAuthStore();
 
-  const { data: nearbyEvents = [], isLoading: nearbyLoading } = useQuery({
+  const { data: nearbyEvents = [], isLoading: nearbyLoading, refetch: refetchEvents } = useQuery({
     queryKey: ['events', 'nearby', latitude, longitude],
     queryFn: () => eventService.getNearbyEvents(latitude || 0, longitude || 0, 30),
     enabled: !!latitude && !!longitude,
   });
+
+  const { data: onlineUsers = [], refetch: refetchUsers } = useQuery({
+    queryKey: ['users', 'online'],
+    queryFn: () => userSearchService.getOnlineUsers(),
+    refetchInterval: 15000,
+  });
+
+  const handleRefresh = () => {
+    refetchEvents();
+    refetchUsers();
+  };
 
   const popularEvents = [...nearbyEvents]
     .sort((a, b) => (b.participantCount ?? 0) - (a.participantCount ?? 0))
@@ -41,7 +55,17 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={nearbyLoading}
+            onRefresh={handleRefresh}
+            tintColor={theme.colors.primary}
+            colors={[theme.colors.primary]}
+          />
+        }
+      >
         {/* ── Hero Header ── */}
         <View style={styles.hero}>
           <View style={styles.heroTop}>
@@ -58,7 +82,6 @@ export default function HomeScreen() {
           </View>
           <View style={styles.dateBadge}>
             <Text style={styles.dateText}>📅 {today}</Text>
-            <Text style={styles.locationText}>📍 {city || 'Near you'}</Text>
           </View>
 
           {/* ── Quick Actions ── */}
@@ -72,7 +95,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.exploreBtn}
-              onPress={() => router.push('/(app)/(tabs)/index')}
+              onPress={() => router.push('/')}
             >
               <Text style={styles.createRunIcon}>🗺️</Text>
               <Text style={styles.createRunText}>Explore Map</Text>
@@ -87,11 +110,38 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* ── Active / Connected Runners ── */}
+        {onlineUsers && onlineUsers.length > 0 && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>🟢 ACTIVE RUNNERS NOW ({onlineUsers.length})</Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.onlineUsersList}>
+              {onlineUsers.map((u) => (
+                <View key={u.id} style={styles.onlineUserCard}>
+                  <View style={styles.onlineAvatarWrap}>
+                    {u.avatar ? (
+                      <Image source={{ uri: resolveMediaUrl(u.avatar) }} style={styles.onlineAvatar} />
+                    ) : (
+                      <View style={styles.onlineAvatarPlaceholder}>
+                        <Text style={styles.onlineAvatarLetter}>{u.name.charAt(0)}</Text>
+                      </View>
+                    )}
+                    <OnlineIndicator isOnline={u.isOnline} size="sm" />
+                  </View>
+                  <Text style={styles.onlineUserName} numberOfLines={1}>{u.name.split(' ')[0]}</Text>
+                  <Text style={styles.onlineUserHandle} numberOfLines={1}>@{u.username}</Text>
+                </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {/* ── Runs Near You ── */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>🏃 RUNS NEAR YOU</Text>
-            <TouchableOpacity onPress={() => router.push('/(app)/(tabs)/index')}>
+            <TouchableOpacity onPress={() => router.push('/')}>
               <Text style={styles.seeAll}>See all</Text>
             </TouchableOpacity>
           </View>
@@ -309,4 +359,15 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.regular,
     fontSize: theme.typography.size.sm,
   },
+  onlineUsersList: { gap: theme.spacing.md, paddingVertical: 4 },
+  onlineUserCard: { alignItems: 'center', width: 68 },
+  onlineAvatarWrap: { position: 'relative', width: 50, height: 50, marginBottom: 4 },
+  onlineAvatar: { width: 50, height: 50, borderRadius: 25 },
+  onlineAvatarPlaceholder: {
+    width: 50, height: 50, borderRadius: 25,
+    backgroundColor: theme.colors.surfaceElevated, justifyContent: 'center', alignItems: 'center',
+  },
+  onlineAvatarLetter: { color: theme.colors.text, fontFamily: theme.typography.fontFamily.bold, fontSize: 18 },
+  onlineUserName: { color: theme.colors.text, fontFamily: theme.typography.fontFamily.semiBold, fontSize: 12, textAlign: 'center' },
+  onlineUserHandle: { color: theme.colors.textMuted, fontFamily: theme.typography.fontFamily.regular, fontSize: 10, textAlign: 'center' },
 });

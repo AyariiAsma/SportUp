@@ -49,4 +49,32 @@ export const eventService = {
   async deleteComment(eventId: string, commentId: string): Promise<void> {
     await api.delete(`/events/${eventId}/comments/${commentId}`);
   },
+
+  async sendInvitation(eventId: string, inviteeId: string): Promise<void> {
+    await api.post(`/events/${eventId}/invitations`, { inviteeId });
+  },
+
+  async getInvitations(eventId: string): Promise<any[]> {
+    const response = await api.get<ApiResponse<any[]>>(`/events/${eventId}/invitations`);
+    return response.data.data;
+  },
+
+  async getMyInvitations(): Promise<any[]> {
+    const response = await api.get<ApiResponse<any[]>>('/events/invitations/my');
+    return response.data.data;
+  },
+
+  async respondToInvitation(invitationId: string, status: 'ACCEPTED' | 'DECLINED'): Promise<void> {
+    await api.put(`/events/invitations/${invitationId}`, { status });
+  },
+
+  async likeEvent(eventId: string): Promise<{ liked: boolean }> {
+    const response = await api.post<{ success: boolean; liked: boolean }>(`/events/${eventId}/like`);
+    return { liked: response.data.liked };
+  },
+
+  async likeComment(eventId: string, commentId: string): Promise<{ liked: boolean }> {
+    const response = await api.post<{ success: boolean; liked: boolean }>(`/events/${eventId}/comments/${commentId}/like`);
+    return { liked: response.data.liked };
+  },
 };

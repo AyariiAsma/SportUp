@@ -7,6 +7,8 @@ export interface Notification {
   body: string;
   type: string;
   read: boolean;
+  data?: { eventId?: string; invitationId?: string; [key: string]: any };
+  metadata?: { eventId?: string; invitationId?: string; [key: string]: any };
   createdAt: string;
 }
 

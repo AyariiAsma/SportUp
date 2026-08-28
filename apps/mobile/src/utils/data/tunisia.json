@@ -1,0 +1,60 @@
+{
+  "governorates": [
+    {
+      "name": "Tunis",
+      "villes": [
+        {
+          "name": "La Marsa",
+          "localities": ["Sidi Bou Said", "Gammarth", "Bhar Lazreg", "La Marsa Plage"]
+        },
+        {
+          "name": "Carthage",
+          "localities": ["Carthage Byrsa", "Carthage Dermech", "Amilcar"]
+        },
+        {
+          "name": "Centre Ville",
+          "localities": ["Lafayette", "Avenue Habib Bourguiba", "Bab Bhar"]
+        }
+      ]
+    },
+    {
+      "name": "Ariana",
+      "villes": [
+        {
+          "name": "Ariana Ville",
+          "localities": ["Ennasr 1", "Ennasr 2", "El Menzah 8", "El Menzah 5"]
+        },
+        {
+          "name": "Soukra",
+          "localities": ["Dar Fadhal", "Chotrana 1", "Chotrana 2", "Sidi Salah"]
+        }
+      ]
+    },
+    {
+      "name": "Sousse",
+      "villes": [
+        {
+          "name": "Sousse Ville",
+          "localities": ["Bouhsina", "Sousse Medina", "Khezama"]
+        },
+        {
+          "name": "Hammam Sousse",
+          "localities": ["Kantaoui", "El Kantaoui"]
+        }
+      ]
+    },
+    {
+      "name": "Sfax",
+      "villes": [
+        {
+          "name": "Sfax Ville",
+          "localities": ["Picville", "Sfax Medina", "Bab Bhar"]
+        },
+        {
+          "name": "Sakiet Ezzit",
+          "localities": ["Centre", "Sidi Salah"]
+        }
+      ]
+    }
+  ]
+}

@@ -6,42 +6,30 @@ import { createEventSchema, type CreateEventInput, Difficulty } from '@sportup/s
 import { theme } from '../../../src/theme';
 import { Button } from '../../../src/components/common/Button';
 import { TextInput } from '../../../src/components/common/TextInput';
-import { Select } from '../../../src/components/common/Select';
-import { TUNISIA_GOVERNORATES, getVillesForGovernorate } from '../../../src/utils/tunisia';
 import { eventService } from '../../../src/services/event.service';
 import { sportService } from '../../../src/services/sport.service';
 import { useLocationStore } from '../../../src/stores/location.store';
 import { useState, useEffect } from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useQuery } from '@tanstack/react-query';
-import MapView, { Marker, Polyline } from '../../../src/components/common/MapView';
-import * as Location from 'expo-location';
-import { getDistanceKm } from '../../../src/utils/distance';
+import { AddressSelector } from '../../../src/components/common/AddressSelector';
+import { format } from 'date-fns';
 
 export default function CreateEventScreen() {
   const router = useRouter();
   const { latitude, longitude, city: userCity } = useLocationStore();
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const [mapMode, setMapMode] = useState<'start' | 'route'>('start');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [pickedDate, setPickedDate] = useState<Date>(new Date(Date.now() + 86400000));
-  const [showAddressEdit, setShowAddressEdit] = useState(false);
-
-  const [selectedCoord, setSelectedCoord] = useState<{lat: number; lng: number}>({
-    lat: latitude || 48.8566,
-    lng: longitude || 2.3522
-  });
-
-  const [routeCoords, setRouteCoords] = useState<Array<{ lat: number; lng: number }>>([]);
 
   const { data: sports = [] } = useQuery({
     queryKey: ['sports'],
     queryFn: () => sportService.getSports(),
   });
 
-  const { control, handleSubmit, formState: { errors }, setValue, watch } = useForm<CreateEventInput>({
+  const { control, handleSubmit, formState: { errors }, setValue, watch, trigger } = useForm<CreateEventInput>({
     resolver: zodResolver(createEventSchema),
     defaultValues: {
       title: '',
@@ -51,19 +39,28 @@ export default function CreateEventScreen() {
       maxParticipants: 10,
       startAt: new Date(Date.now() + 86400000).toISOString(),
       durationMin: 60,
-      lat: selectedCoord.lat,
-      lng: selectedCoord.lng,
+      lat: latitude || 36.8065,
+      lng: longitude || 10.1815,
       city: userCity || '',
       locationName: '',
       region: '',
-      country: '',
-      distanceKm: 0,
+      locality: '',
+      country: 'Tunisia',
+      distanceKm: 5,
     }
   });
+
+  // Auto-select first sport if none selected
+  useEffect(() => {
+    if (sports.length > 0 && !watch('sportId')) {
+      setValue('sportId', sports[0].id, { shouldValidate: true });
+    }
+  }, [sports]);
 
   const selectedSportId = watch('sportId');
   const selectedDifficulty = watch('difficulty');
   const watchLocationName = watch('locationName');
+  const watchLocality = watch('locality');
   const watchCity = watch('city');
   const watchRegion = watch('region');
   const watchCountry = watch('country');
@@ -72,77 +69,20 @@ export default function CreateEventScreen() {
   const watchDescription = watch('description');
   const watchStartAt = watch('startAt');
 
-  // Automatically update start coordinates in the form
-  useEffect(() => {
-    setValue('lat', selectedCoord.lat);
-    setValue('lng', selectedCoord.lng);
-  }, [selectedCoord]);
+  const goToStep2 = async () => {
+    const isTitleValid = await trigger('title');
+    const isDescValid = await trigger('description');
+    const isSportValid = await trigger('sportId');
 
-  // Recalculate route distance in KM when routeCoords change
-  useEffect(() => {
-    if (routeCoords.length === 0) {
+    if (!isSportValid) {
+      Alert.alert('Sport Required', 'Please select a sport category.');
       return;
     }
-    let totalDist = 0;
-    let prev = selectedCoord;
-    for (const pt of routeCoords) {
-      totalDist += getDistanceKm(prev.lat, prev.lng, pt.lat, pt.lng);
-      prev = pt;
+    if (!isTitleValid || !isDescValid) {
+      Alert.alert('Missing Info', 'Please provide a valid title (at least 3 characters) and description (at least 10 characters).');
+      return;
     }
-    setValue('distanceKm', Math.round(totalDist * 10) / 10);
-  }, [routeCoords, selectedCoord]);
-
-  const triggerReverseGeocoding = async (lat: number, lng: number) => {
-    try {
-      const geocode = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
-      if (geocode && geocode.length > 0) {
-        const g = geocode[0];
-        const locationName = g.street || g.name || 'Custom Start Point';
-        const cityVal = g.city || g.subregion || g.region || '';
-        const regionVal = g.region || '';
-        const countryVal = g.country || '';
-
-        setValue('locationName', locationName);
-        setValue('city', cityVal);
-        setValue('region', regionVal);
-        setValue('country', countryVal);
-      }
-    } catch {
-      // Fallback
-      setValue('locationName', 'Selected Coordinate');
-      setValue('city', userCity || 'Paris');
-    }
-  };
-
-  // Move map starting point to user GPS
-  const useCurrentGPS = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'We need GPS permission to pan to your location.');
-        return;
-      }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-      const nextCoords = { lat: loc.coords.latitude, lng: loc.coords.longitude };
-      setSelectedCoord(nextCoords);
-      triggerReverseGeocoding(nextCoords.lat, nextCoords.lng);
-    } catch (err) {
-      Alert.alert('Error', 'Could not retrieve GPS coordinates.');
-    }
-  };
-
-  const handleMapPress = (e: any) => {
-    const coordinate = e.nativeEvent?.coordinate;
-    if (!coordinate) return;
-
-    if (mapMode === 'start') {
-      const nextCoords = { lat: coordinate.latitude, lng: coordinate.longitude };
-      setSelectedCoord(nextCoords);
-      triggerReverseGeocoding(nextCoords.lat, nextCoords.lng);
-    } else {
-      // Drawing route
-      setRouteCoords(prev => [...prev, { lat: coordinate.latitude, lng: coordinate.longitude }]);
-    }
+    setStep(2);
   };
 
   const onSubmit = async (data: CreateEventInput) => {
@@ -156,14 +96,10 @@ export default function CreateEventScreen() {
       const newEvent = await eventService.createEvent({
         ...data,
         startAt: startAtDate.toISOString(),
-        lat: selectedCoord.lat,
-        lng: selectedCoord.lng,
-        // Send the drawn coordinates array to be saved in EventRoute
-        routeCoordinates: routeCoords,
       } as any);
 
-      Alert.alert('Success', 'Event created successfully!', [
-        { text: 'View Event', onPress: () => router.replace(`/(app)/event/${newEvent.id}`) }
+      Alert.alert('🎉 Run Published!', 'Your running event has been created successfully.', [
+        { text: 'View Run', onPress: () => router.replace(`/(app)/event/${newEvent.id}`) }
       ]);
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || error.message || 'Failed to create event');
@@ -171,6 +107,30 @@ export default function CreateEventScreen() {
       setIsLoading(false);
     }
   };
+
+  const onFormError = (formErrors: any) => {
+    const fields = Object.keys(formErrors);
+    if (fields.length > 0) {
+      const firstField = fields[0];
+      const message = formErrors[firstField]?.message || 'Invalid value';
+      Alert.alert('Form Error', `${firstField.toUpperCase()}: ${message}`);
+    }
+  };
+
+  // Build clean presentable address
+  const addressParts = [
+    watchLocationName,
+    watchLocality,
+    watchCity,
+    watchRegion,
+    watchCountry || 'Tunisia',
+  ].filter(Boolean);
+  const formattedAddress = addressParts.length > 0 ? addressParts.join(', ') : 'No specific address selected';
+
+  // Format date time nicely for preview
+  const formattedDatePreview = watchStartAt
+    ? format(new Date(watchStartAt), 'EEEE, MMMM d, yyyy @ h:mm a')
+    : 'Not set';
 
   return (
     <SafeAreaView style={styles.container}>
@@ -183,7 +143,7 @@ export default function CreateEventScreen() {
         <View style={styles.progressLine} />
         <View style={[styles.progressStep, step >= 2 && styles.progressActive]}>
           <Text style={styles.progressStepNum}>2</Text>
-          <Text style={styles.progressStepLabel}>Route</Text>
+          <Text style={styles.progressStepLabel}>Location</Text>
         </View>
         <View style={styles.progressLine} />
         <View style={[styles.progressStep, step >= 3 && styles.progressActive]}>
@@ -224,7 +184,7 @@ export default function CreateEventScreen() {
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
                   label="Event Title"
-                  placeholder="e.g. Morning Jog in the Park"
+                  placeholder="e.g. Morning Jog in Lac 1"
                   onBlur={onBlur}
                   onChangeText={onChange}
                   value={value}
@@ -239,7 +199,7 @@ export default function CreateEventScreen() {
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
                   label="Description"
-                  placeholder="Tell other runners what to expect..."
+                  placeholder="Tell other runners what pace, route or gear to expect..."
                   multiline
                   numberOfLines={4}
                   style={{ minHeight: 100, textAlignVertical: 'top' }}
@@ -290,7 +250,7 @@ export default function CreateEventScreen() {
             <Controller
               control={control}
               name="startAt"
-              render={({ field: { onChange, value } }) => {
+              render={({ field: { onChange } }) => {
                 const dateObj = pickedDate;
                 const dateLabel = dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
                 const timeLabel = dateObj.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
@@ -391,177 +351,43 @@ export default function CreateEventScreen() {
               ))}
             </View>
 
-            <Button title="Continue to Route Map" onPress={() => setStep(2)} style={styles.submitBtn} />
+            <Button title="Continue to Location →" onPress={goToStep2} style={styles.submitBtn} />
           </View>
         )}
 
         {step === 2 && (
           <View>
-            <Text style={styles.pageTitle}>🗺️ Location & Route</Text>
+            <Text style={styles.pageTitle}>📍 Location</Text>
 
-            {/* Map Mode Buttons */}
-            <View style={styles.mapControlsRow}>
-              <TouchableOpacity 
-                style={[styles.controlTab, mapMode === 'start' && styles.controlTabActive]} 
-                onPress={() => setMapMode('start')}
-              >
-                <Text style={[styles.controlTabText, mapMode === 'start' && styles.controlTabTextActive]}>📍 1. Start Point</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.controlTab, mapMode === 'route' && styles.controlTabActive]} 
-                onPress={() => setMapMode('route')}
-              >
-                <Text style={[styles.controlTabText, mapMode === 'route' && styles.controlTabTextActive]}>✏️ 2. Draw Route</Text>
-              </TouchableOpacity>
-            </View>
+            <AddressSelector
+              initialRegion={watchRegion}
+              initialCity={watchCity}
+              initialLocality={watchLocality}
+              onChange={(region, city, locality) => {
+                setValue('region', region, { shouldValidate: true });
+                setValue('city', city, { shouldValidate: true });
+                setValue('locality', locality, { shouldValidate: true });
+              }}
+            />
 
-            <View style={styles.mapBoxContainer}>
-              <MapView
-                style={styles.map}
-                initialRegion={{
-                  latitude: selectedCoord.lat,
-                  longitude: selectedCoord.lng,
-                  latitudeDelta: 0.03,
-                  longitudeDelta: 0.03,
-                }}
-                onPress={handleMapPress}
-                routeCoordinates={routeCoords}
-              >
-                {/* Starting point marker */}
-                <Marker coordinate={{ latitude: selectedCoord.lat, longitude: selectedCoord.lng }} />
-                
-                {/* Route points markers */}
-                {routeCoords.map((pt, idx) => (
-                  <Marker 
-                    key={idx} 
-                    coordinate={{ latitude: pt.lat, longitude: pt.lng }} 
-                    pinColor="#ff6b35"
-                  />
-                ))}
-
-                {/* Polyline route connector */}
-                {routeCoords.length > 0 && (
-                  <Polyline 
-                    coordinates={[
-                      { latitude: selectedCoord.lat, longitude: selectedCoord.lng },
-                      ...routeCoords.map(c => ({ latitude: c.lat, longitude: c.lng }))
-                    ]}
-                    strokeColor="#ff6b35"
-                    strokeWidth={4}
-                  />
-                )}
-              </MapView>
-            </View>
-
-            {/* Route Stats */}
-            <View style={styles.routeStatsBox}>
-              <Text style={styles.routeStatLabel}>🏃 Route Distance</Text>
-              <Text style={styles.routeStatValue}>{watchDistanceKm} KM</Text>
-            </View>
-
-            <View style={styles.gpsRow}>
-              <Button title="Use GPS Location 📍" variant="secondary" onPress={useCurrentGPS} style={styles.flexBtn} />
-              {routeCoords.length > 0 && (
-                <Button 
-                  title="Clear Route 🗑️" 
-                  variant="outline" 
-                  onPress={() => setRouteCoords([])} 
-                  style={[styles.flexBtn, { marginLeft: theme.spacing.sm }]} 
+            <Controller
+              control={control}
+              name="locationName"
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  label="Meeting Point / Additional Address Details (Optional)"
+                  placeholder="e.g. Near the main entrance, Parking area"
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                  error={errors.locationName?.message}
                 />
               )}
-            </View>
-
-            {/* ── Auto Address Card (from map tap) ── */}
-            <Text style={styles.sectionTitle}>📍 Start Location</Text>
-
-            {(watchLocationName || watchCity) ? (
-              <View style={styles.addressCard}>
-                <View style={styles.addressCardHeader}>
-                  <Text style={styles.addressCardIcon}>📍</Text>
-                  <View style={{ flex: 1 }}>
-                    {watchLocationName ? (
-                      <Text style={styles.addressCardName}>{watchLocationName}</Text>
-                    ) : null}
-                    <Text style={styles.addressCardSub}>
-                      {[watchCity, watchRegion, watchCountry].filter(Boolean).join(', ')}
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    style={styles.addressEditToggle}
-                    onPress={() => setShowAddressEdit(v => !v)}
-                  >
-                    <Text style={styles.addressEditToggleText}>{showAddressEdit ? 'Done' : 'Edit'}</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {showAddressEdit && (
-                  <View style={styles.addressEditPanel}>
-                    <Controller
-                      control={control}
-                      name="region"
-                      render={({ field: { onChange, value } }) => (
-                        <Select
-                          label="Governorate"
-                          placeholder="Select Governorate"
-                          selectedValue={value || ''}
-                          onValueChange={(val) => {
-                            onChange(val);
-                            // Reset Ville when Governorate changes
-                            setValue('city', '');
-                          }}
-                          options={TUNISIA_GOVERNORATES}
-                        />
-                      )}
-                    />
-                    <Controller
-                      control={control}
-                      name="city"
-                      render={({ field: { onChange, value } }) => {
-                        const currentGov = watchRegion;
-                        const villeOptions = currentGov ? getVillesForGovernorate(currentGov) : [];
-                        return (
-                          <Select
-                            label="Ville / Delegation"
-                            placeholder={currentGov ? "Select Ville" : "Select Governorate first"}
-                            selectedValue={value || ''}
-                            onValueChange={onChange}
-                            options={villeOptions}
-                          />
-                        );
-                      }}
-                    />
-                    <Controller
-                      control={control}
-                      name="locationName"
-                      render={({ field: { onChange, value } }) => (
-                        <TextInput
-                          label="Localité / Address"
-                          placeholder="e.g. Lac 1, Carthage, Centre Ville"
-                          onChangeText={onChange}
-                          value={value || ''}
-                        />
-                      )}
-                    />
-                  </View>
-                )}
-              </View>
-            ) : (
-              <View style={styles.addressEmptyCard}>
-                <Text style={styles.addressEmptyIcon}>🗺️</Text>
-                <Text style={styles.addressEmptyTitle}>Tap on the map to set start point</Text>
-                <Text style={styles.addressEmptyHint}>Your GPS coordinates will be auto-detected and the address filled in automatically.</Text>
-                <Button
-                  title="Use My GPS Location"
-                  variant="outline"
-                  onPress={useCurrentGPS}
-                  style={{ marginTop: theme.spacing.md }}
-                />
-              </View>
-            )}
+            />
 
             <View style={styles.navRow}>
-              <Button title="Back" variant="ghost" onPress={() => setStep(1)} style={styles.flexBtn} />
-              <Button title="Continue to Preview" onPress={() => setStep(3)} style={styles.flexBtn} />
+              <Button title="← Back" variant="ghost" onPress={() => setStep(1)} style={styles.flexBtn} />
+              <Button title="Continue to Preview →" onPress={() => setStep(3)} style={styles.flexBtn} />
             </View>
           </View>
         )}
@@ -571,29 +397,26 @@ export default function CreateEventScreen() {
             <Text style={styles.pageTitle}>🔍 Preview Running Event</Text>
             
             <View style={styles.previewCard}>
-              <Text style={styles.previewTitle}>{watchTitle || 'No Title'}</Text>
-              <Text style={styles.previewDistance}>📏 {watchDistanceKm} KM Run</Text>
+              <Text style={styles.previewTitle}>{watchTitle || 'Untitled Run'}</Text>
+              {watchDistanceKm ? (
+                <Text style={styles.previewDistance}>📏 {watchDistanceKm} KM Run</Text>
+              ) : null}
               
-              <Text style={styles.previewLabel}>Description</Text>
+              <Text style={styles.previewLabel}>📝 Description</Text>
               <Text style={styles.previewText}>{watchDescription || 'No description provided.'}</Text>
               
-              <Text style={styles.previewLabel}>📍 Starting Point</Text>
-              <Text style={styles.previewText}>
-                {watchLocationName ? `${watchLocationName}, ` : ''}
-                {watchCity ? `${watchCity}, ` : ''}
-                {watchRegion ? `${watchRegion}, ` : ''}
-                {watchCountry || ''}
-              </Text>
+              <Text style={styles.previewLabel}>📍 Location &amp; Meeting Point</Text>
+              <Text style={styles.previewText}>{formattedAddress}</Text>
               
-              <Text style={styles.previewLabel}>⏰ Planned Date</Text>
-              <Text style={styles.previewText}>{watchStartAt}</Text>
+              <Text style={styles.previewLabel}>⏰ Planned Date &amp; Time</Text>
+              <Text style={styles.previewText}>{formattedDatePreview}</Text>
             </View>
 
             <View style={styles.navRow}>
-              <Button title="Edit Route" variant="ghost" onPress={() => setStep(2)} style={styles.flexBtn} />
+              <Button title="← Edit Location" variant="ghost" onPress={() => setStep(2)} style={styles.flexBtn} />
               <Button
-                title="Publish Run"
-                onPress={handleSubmit(onSubmit)}
+                title="Publish Run 🚀"
+                onPress={handleSubmit(onSubmit, onFormError)}
                 isLoading={isLoading}
                 style={styles.flexBtn}
               />
@@ -638,37 +461,42 @@ const styles = StyleSheet.create({
   difficultyText: { color: theme.colors.textMuted, fontFamily: theme.typography.fontFamily.medium, fontSize: 12, textAlign: 'center' },
   difficultyTextActive: { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.bold },
   submitBtn: { width: '100%', marginTop: theme.spacing.lg },
-  navRow: { flexDirection: 'row', gap: theme.spacing.sm },
-  bottomBarWrapper: { backgroundColor: theme.colors.surface },
-  bottomBar: { padding: theme.spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' },
-  mapControlsRow: { flexDirection: 'row', backgroundColor: theme.colors.surface, borderRadius: theme.border.radius.md, padding: 4, marginBottom: theme.spacing.md },
-  controlTab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: theme.border.radius.sm },
-  controlTabActive: { backgroundColor: theme.colors.primary },
-  controlTabText: { color: theme.colors.textMuted, fontFamily: theme.typography.fontFamily.bold, fontSize: 13 },
-  controlTabTextActive: { color: '#fff' },
-  mapBoxContainer: { height: 320, borderRadius: theme.border.radius.lg, overflow: 'hidden', backgroundColor: theme.colors.surfaceElevated, marginBottom: theme.spacing.md },
-  map: { width: '100%', height: '100%' },
-  routeStatsBox: { backgroundColor: 'rgba(255, 107, 53, 0.12)', borderRadius: theme.border.radius.md, padding: theme.spacing.md, alignItems: 'center', marginBottom: theme.spacing.md },
-  routeStatLabel: { color: theme.colors.textSecondary, fontSize: 12, fontFamily: theme.typography.fontFamily.bold, textTransform: 'uppercase', letterSpacing: 0.5 },
-  routeStatValue: { color: theme.colors.primary, fontSize: 28, fontFamily: theme.typography.fontFamily.bold, marginTop: 4 },
-  gpsRow: { flexDirection: 'row', marginBottom: theme.spacing.lg },
+  navRow: { flexDirection: 'row', gap: theme.spacing.sm, marginTop: theme.spacing.xl },
   flexBtn: { flex: 1 },
-  previewBox: { marginTop: theme.spacing.md },
-  previewCard: { backgroundColor: theme.colors.surface, borderRadius: theme.border.radius.lg, padding: theme.spacing.xl, marginBottom: theme.spacing.lg },
-  previewTitle: { fontSize: theme.typography.size.lg, fontFamily: theme.typography.fontFamily.bold, color: theme.colors.text, marginBottom: theme.spacing.xs },
-  previewDistance: { fontSize: theme.typography.size.md, fontFamily: theme.typography.fontFamily.semiBold, color: theme.colors.primary, marginBottom: theme.spacing.md },
-  previewLabel: { fontSize: 11, color: theme.colors.textMuted, textTransform: 'uppercase', fontFamily: theme.typography.fontFamily.bold, marginTop: theme.spacing.md, marginBottom: 2 },
-  previewText: { fontSize: 13, color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.medium },
-  addressCard: { backgroundColor: theme.colors.surface, borderRadius: theme.border.radius.lg, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', marginBottom: theme.spacing.lg },
-  addressCardHeader: { flexDirection: 'row', alignItems: 'center', padding: theme.spacing.md, backgroundColor: 'rgba(255,107,53,0.05)' },
-  addressCardIcon: { fontSize: 24, marginRight: theme.spacing.sm },
-  addressCardName: { color: theme.colors.text, fontFamily: theme.typography.fontFamily.bold, fontSize: 15, marginBottom: 2 },
-  addressCardSub: { color: theme.colors.textMuted, fontFamily: theme.typography.fontFamily.medium, fontSize: 12 },
-  addressEditToggle: { padding: theme.spacing.sm, backgroundColor: 'rgba(255,107,53,0.1)', borderRadius: theme.border.radius.round, marginLeft: theme.spacing.sm },
-  addressEditToggleText: { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.bold, fontSize: 11 },
-  addressEditPanel: { padding: theme.spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.05)' },
-  addressEmptyCard: { backgroundColor: theme.colors.surface, borderRadius: theme.border.radius.lg, padding: theme.spacing.xl, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderStyle: 'dashed', marginBottom: theme.spacing.lg },
-  addressEmptyIcon: { fontSize: 32, marginBottom: theme.spacing.sm },
-  addressEmptyTitle: { color: theme.colors.text, fontFamily: theme.typography.fontFamily.bold, fontSize: 16, marginBottom: 4, textAlign: 'center' },
-  addressEmptyHint: { color: theme.colors.textMuted, fontFamily: theme.typography.fontFamily.regular, fontSize: 13, textAlign: 'center', lineHeight: 20 },
+  previewBox: {},
+  previewCard: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.border.radius.lg,
+    padding: theme.spacing.lg,
+    marginBottom: theme.spacing.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,107,53,0.2)',
+  },
+  previewTitle: {
+    fontSize: theme.typography.size.xl,
+    fontFamily: theme.typography.fontFamily.bold,
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  previewDistance: {
+    fontSize: theme.typography.size.md,
+    fontFamily: theme.typography.fontFamily.semiBold,
+    color: theme.colors.primary,
+    marginBottom: theme.spacing.md,
+  },
+  previewLabel: {
+    fontSize: theme.typography.size.xs,
+    fontFamily: theme.typography.fontFamily.bold,
+    color: theme.colors.textMuted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginTop: theme.spacing.sm,
+    marginBottom: 2,
+  },
+  previewText: {
+    fontSize: theme.typography.size.md,
+    fontFamily: theme.typography.fontFamily.regular,
+    color: theme.colors.textSecondary,
+    lineHeight: 22,
+  },
 });

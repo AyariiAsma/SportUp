@@ -61,6 +61,10 @@ export const theme = {
     fontFamily: {
       primary: 'Inter',
       heading: 'Outfit',
+      regular: 'Inter',
+      medium: 'Inter',
+      semiBold: 'Inter',
+      bold: 'Outfit',
     },
     size: {
       xs: 12,
