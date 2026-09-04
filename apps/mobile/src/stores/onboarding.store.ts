@@ -4,6 +4,7 @@ import { storage } from '../utils/storage';
 interface OnboardingState {
   hasCompletedOnboarding: boolean;
   setOnboardingComplete: () => Promise<void>;
+  resetOnboardingState: () => void;
   loadOnboardingState: () => Promise<void>;
 }
 
@@ -20,5 +21,9 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   setOnboardingComplete: async () => {
     await storage.setItem(ONBOARDING_KEY, 'true');
     set({ hasCompletedOnboarding: true });
+  },
+
+  resetOnboardingState: () => {
+    set({ hasCompletedOnboarding: false });
   },
 }));

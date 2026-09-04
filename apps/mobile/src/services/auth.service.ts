@@ -1,6 +1,7 @@
 import { api } from './api';
 import { storage } from '../utils/storage';
 import { useAuthStore } from '../stores/auth.store';
+import { useOnboardingStore } from '../stores/onboarding.store';
 import type { LoginInput, RegisterInput, AuthResponse, ApiResponse, UserProfile } from '@sportup/shared';
 
 export const authService = {
@@ -22,6 +23,10 @@ export const authService = {
     await storage.setItem('access_token', tokens.accessToken);
     await storage.setItem('refresh_token', tokens.refreshToken);
     
+    // Ensure onboarding state is reset for a brand new user
+    await storage.deleteItem('onboarding_completed');
+    useOnboardingStore.getState().resetOnboardingState();
+
     useAuthStore.getState().setUser(user);
     return response.data.data;
   },
