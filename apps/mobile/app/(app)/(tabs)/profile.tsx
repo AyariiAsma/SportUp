@@ -1,11 +1,13 @@
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, RefreshControl, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../../src/stores/auth.store';
 import { authService } from '../../../src/services/auth.service';
+import { userSearchService } from '../../../src/services/user.service';
 import { api } from '../../../src/services/api';
 import { theme } from '../../../src/theme';
 import { Button } from '../../../src/components/common/Button';
+import { useState } from 'react';
 import type { UserProfile } from '@sportup/shared';
 import type { ApiResponse } from '@sportup/shared';
 
@@ -18,6 +20,7 @@ const LEVEL_LABELS: Record<string, string> = {
 export default function ProfileScreen() {
   const { user } = useAuthStore();
   const router = useRouter();
+  const [modalType, setModalType] = useState<'followers' | 'following' | null>(null);
 
   const { data: profile, isLoading, refetch } = useQuery({
     queryKey: ['profile', 'me'],
@@ -25,6 +28,18 @@ export default function ProfileScreen() {
       const res = await api.get<ApiResponse<UserProfile>>('/users/me');
       return res.data.data;
     },
+  });
+
+  const { data: followersList = [], isLoading: followersLoading } = useQuery({
+    queryKey: ['followers', user?.id],
+    queryFn: () => (user?.id ? userSearchService.getFollowers(user.id) : []),
+    enabled: modalType === 'followers' && !!user?.id,
+  });
+
+  const { data: followingList = [], isLoading: followingLoading } = useQuery({
+    queryKey: ['following', user?.id],
+    queryFn: () => (user?.id ? userSearchService.getFollowing(user.id) : []),
+    enabled: modalType === 'following' && !!user?.id,
   });
 
   const displayProfile = profile || user;
@@ -37,6 +52,9 @@ export default function ProfileScreen() {
   const runningLevelLabel = displayProfile?.runningLevel
     ? LEVEL_LABELS[displayProfile.runningLevel] || displayProfile.runningLevel
     : '🌱 Beginner Runner';
+
+  const modalData = modalType === 'followers' ? followersList : followingList;
+  const isListLoading = modalType === 'followers' ? followersLoading : followingLoading;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -87,15 +105,23 @@ export default function ProfileScreen() {
 
           {/* ── Social counts ── */}
           <View style={styles.socialRow}>
-            <View style={styles.socialItem}>
+            <TouchableOpacity 
+              style={styles.socialItem} 
+              onPress={() => setModalType('followers')}
+              activeOpacity={0.7}
+            >
               <Text style={styles.socialCount}>{(profile as any)?.followersCount ?? 0}</Text>
               <Text style={styles.socialLabel}>Followers</Text>
-            </View>
+            </TouchableOpacity>
             <View style={styles.socialDivider} />
-            <View style={styles.socialItem}>
+            <TouchableOpacity 
+              style={styles.socialItem} 
+              onPress={() => setModalType('following')}
+              activeOpacity={0.7}
+            >
               <Text style={styles.socialCount}>{(profile as any)?.followingCount ?? 0}</Text>
               <Text style={styles.socialLabel}>Following</Text>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -145,6 +171,65 @@ export default function ProfileScreen() {
           />
         </View>
       </ScrollView>
+
+      {/* ── Followers / Following Modal ── */}
+      <Modal
+        visible={modalType !== null}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalType(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>
+                {modalType === 'followers' ? 'Followers' : 'Following'}
+              </Text>
+              <TouchableOpacity onPress={() => setModalType(null)} style={styles.closeBtn}>
+                <Text style={styles.closeBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {isListLoading ? (
+              <ActivityIndicator size="large" color={theme.colors.primary} style={styles.modalLoading} />
+            ) : modalData.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>
+                  {modalType === 'followers' ? 'No followers yet' : 'Not following anyone yet'}
+                </Text>
+              </View>
+            ) : (
+              <FlatList
+                data={modalData}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={styles.listPadding}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    style={styles.userListItem}
+                    onPress={() => {
+                      setModalType(null);
+                      router.push(`/(app)/user/${item.id}` as any);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    {item.avatar ? (
+                      <Image source={{ uri: item.avatar }} style={styles.userAvatarImg} />
+                    ) : (
+                      <View style={styles.userAvatarPlaceholder}>
+                        <Text style={styles.userAvatarLetter}>{item.name?.charAt(0) || 'U'}</Text>
+                      </View>
+                    )}
+                    <View style={styles.userInfo}>
+                      <Text style={styles.userName}>{item.name}</Text>
+                      <Text style={styles.userHandle}>@{item.username}</Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -317,5 +402,95 @@ const styles = StyleSheet.create({
   },
   actionBtn: {
     width: '100%',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: theme.colors.background,
+    borderTopLeftRadius: theme.border.radius.xl,
+    borderTopRightRadius: theme.border.radius.xl,
+    maxHeight: '80%',
+    minHeight: 300,
+    padding: theme.spacing.lg,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.1)',
+  },
+  modalTitle: {
+    fontSize: theme.typography.size.xl,
+    fontFamily: theme.typography.fontFamily.bold,
+    color: theme.colors.text,
+  },
+  closeBtn: {
+    padding: theme.spacing.xs,
+  },
+  closeBtnText: {
+    fontSize: 18,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontFamily.bold,
+  },
+  modalLoading: {
+    marginTop: 40,
+  },
+  emptyContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: theme.typography.size.md,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontFamily.medium,
+  },
+  listPadding: {
+    paddingVertical: theme.spacing.sm,
+  },
+  userListItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.05)',
+  },
+  userAvatarImg: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    marginRight: theme.spacing.md,
+  },
+  userAvatarPlaceholder: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: theme.spacing.md,
+  },
+  userAvatarLetter: {
+    fontSize: 18,
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontFamily.bold,
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: theme.typography.size.md,
+    fontFamily: theme.typography.fontFamily.bold,
+    color: theme.colors.text,
+  },
+  userHandle: {
+    fontSize: theme.typography.size.sm,
+    fontFamily: theme.typography.fontFamily.regular,
+    color: theme.colors.textMuted,
   },
 });

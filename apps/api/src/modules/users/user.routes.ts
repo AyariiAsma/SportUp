@@ -197,6 +197,62 @@ export async function userRoutes(app: FastifyInstance) {
     return reply.send({ success: true, message: 'Following' });
   });
 
+  // ─── Get User Followers ─────────────────────────────────
+
+  app.get('/:id/followers', async (request, reply) => {
+    const { id: userId } = request.params as { id: string };
+
+    const followers = await prisma.follow.findMany({
+      where: { followingId: userId, follower: { isActive: true } },
+      select: {
+        follower: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            avatar: true,
+            city: true,
+            runningLevel: true,
+            rankScore: true,
+            isOnline: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+
+    return reply.send({ success: true, data: followers.map((f) => f.follower) });
+  });
+
+  // ─── Get User Following ─────────────────────────────────
+
+  app.get('/:id/following', async (request, reply) => {
+    const { id: userId } = request.params as { id: string };
+
+    const following = await prisma.follow.findMany({
+      where: { followerId: userId, following: { isActive: true } },
+      select: {
+        following: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            avatar: true,
+            city: true,
+            runningLevel: true,
+            rankScore: true,
+            isOnline: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+
+    return reply.send({ success: true, data: following.map((f) => f.following) });
+  });
+
   // ─── Unfollow User ─────────────────────────────────────
 
   app.delete('/:id/follow', { preHandler: [app.authenticate] }, async (request, reply) => {

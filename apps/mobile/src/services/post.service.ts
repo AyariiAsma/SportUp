@@ -1,4 +1,4 @@
-import { api } from './api';
+import { api, getApiUrl } from './api';
 import type { ApiResponse } from '@sportup/shared';
 
 export interface PostAuthor {
@@ -50,19 +50,11 @@ export interface Post {
   isPublic: boolean;
 }
 
-// Resolve media URL to absolute URL
-const BASE_URL = (() => {
-  const { Platform } = require('react-native');
-  return Platform.OS === 'web'
-    ? 'http://localhost:3000/api/v1'
-    : 'http://10.171.29.159:3000/api/v1';
-})();
-
 export function resolveMediaUrl(url: string): string {
   if (!url) return url;
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
   // Strip /api/v1 from base and prepend
-  const base = BASE_URL.replace('/api/v1', '');
+  const base = getApiUrl().replace('/api/v1', '');
   return `${base}${url}`;
 }
 

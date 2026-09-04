@@ -45,7 +45,7 @@ function PodiumCard({ entry, position }: { entry: LeaderboardEntry; position: 1 
   return (
     <TouchableOpacity
       style={[styles.podiumCard, isFirst && styles.podiumCardFirst]}
-      onPress={() => router.push(`/(app)/profile/${entry.id}` as any)}
+      onPress={() => router.push(`/(app)/user/${entry.id}` as any)}
       activeOpacity={0.85}
     >
       <Text style={styles.podiumIcon}>{medal.icon}</Text>
@@ -82,7 +82,7 @@ function RankRow({ entry, isMe }: { entry: LeaderboardEntry; isMe: boolean }) {
     <Animated.View style={{ transform: [{ scale }] }}>
       <TouchableOpacity
         style={[styles.row, isMe && styles.rowMe]}
-        onPress={() => router.push(`/(app)/profile/${entry.id}` as any)}
+        onPress={() => router.push(`/(app)/user/${entry.id}` as any)}
         onPressIn={onPressIn}
         onPressOut={onPressOut}
         activeOpacity={1}

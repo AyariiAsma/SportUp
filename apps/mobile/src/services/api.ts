@@ -2,13 +2,31 @@ import axios from 'axios';
 import { Platform } from 'react-native';
 import { storage } from '../utils/storage';
 
-// Use localhost for Web/Simulators, local network IP for physical mobile testing
-const DEV_URL = Platform.OS === 'web' 
-  ? 'http://localhost:3000/api/v1' 
-  : 'http://10.171.29.159:3000/api/v1';
+import Constants from 'expo-constants';
+
+export const getApiUrl = (): string => {
+  if (Platform.OS === 'web') {
+    return 'http://localhost:3000/api/v1';
+  }
+
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  const hostUri = Constants.expoConfig?.hostUri || (Constants as any).manifest2?.extra?.expoGo?.developer?.inputs?.find((i: any) => i.type === 'emulator')?.value;
+  if (hostUri) {
+    const hostIp = hostUri.split(':')[0];
+    if (hostIp) {
+      return `http://${hostIp}:3000/api/v1`;
+    }
+  }
+
+  return 'http://10.13.54.159:3000/api/v1';
+};
 
 export const api = axios.create({
-  baseURL: DEV_URL,
+  baseURL: getApiUrl(),
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -70,7 +88,7 @@ api.interceptors.response.use(
           throw new Error('No refresh token available');
         }
 
-        const { data } = await axios.post(`${DEV_URL}/auth/refresh`, { refreshToken });
+        const { data } = await axios.post(`${getApiUrl()}/auth/refresh`, { refreshToken });
         
         const newAccessToken = data.data.tokens.accessToken;
         const newRefreshToken = data.data.tokens.refreshToken;

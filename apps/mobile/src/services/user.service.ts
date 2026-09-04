@@ -1,5 +1,5 @@
 import { api } from './api';
-import type { ApiResponse } from '@sportup/shared';
+import type { ApiResponse, UserProfile } from '@sportup/shared';
 
 export interface SearchUser {
   id: string;
@@ -29,5 +29,28 @@ export const userSearchService = {
     } catch {
       return [];
     }
+  },
+
+  async followUser(userId: string): Promise<void> {
+    await api.post(`/users/${userId}/follow`);
+  },
+
+  async unfollowUser(userId: string): Promise<void> {
+    await api.delete(`/users/${userId}/follow`);
+  },
+
+  async getFollowers(userId: string): Promise<SearchUser[]> {
+    const response = await api.get<ApiResponse<SearchUser[]>>(`/users/${userId}/followers`);
+    return response.data.data;
+  },
+
+  async getFollowing(userId: string): Promise<SearchUser[]> {
+    const response = await api.get<ApiResponse<SearchUser[]>>(`/users/${userId}/following`);
+    return response.data.data;
+  },
+
+  async getUserProfile(userId: string): Promise<UserProfile> {
+    const response = await api.get<ApiResponse<UserProfile>>(`/users/${userId}`);
+    return response.data.data;
   },
 };
