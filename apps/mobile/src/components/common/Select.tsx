@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, TextInput } from 'react-native';
 import { theme } from '../../theme';
 import { useState } from 'react';
 
@@ -19,9 +19,20 @@ interface SelectProps {
 export function Select({ label, error, selectedValue, onValueChange, options, placeholder }: SelectProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const selectedOption = options.find(o => o.value === selectedValue);
   const displayValue = selectedOption ? selectedOption.label : (placeholder || 'Select...');
+
+  const filteredOptions = searchQuery.trim() === ''
+    ? options
+    : options.filter(o => o.label.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  const handleClose = () => {
+    setModalVisible(false);
+    setIsFocused(false);
+    setSearchQuery('');
+  };
 
   return (
     <View style={styles.container}>
@@ -51,22 +62,33 @@ export function Select({ label, error, selectedValue, onValueChange, options, pl
         visible={modalVisible}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => {
-          setModalVisible(false);
-          setIsFocused(false);
-        }}
+        onRequestClose={handleClose}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>{placeholder || label || 'Select Option'}</Text>
-              <TouchableOpacity onPress={() => { setModalVisible(false); setIsFocused(false); }} style={styles.closeButton}>
+              <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
                 <Text style={styles.closeButtonText}>Done</Text>
               </TouchableOpacity>
             </View>
+
+            {options.length > 5 && (
+              <View style={styles.searchContainer}>
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="Search..."
+                  placeholderTextColor={theme.colors.textMuted}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  autoCorrect={false}
+                  clearButtonMode="while-editing"
+                />
+              </View>
+            )}
             
             <FlatList
-              data={options}
+              data={filteredOptions}
               keyExtractor={(item) => item.value}
               renderItem={({ item }) => {
                 const isSelected = item.value === selectedValue;
@@ -75,8 +97,7 @@ export function Select({ label, error, selectedValue, onValueChange, options, pl
                     style={[styles.optionItem, isSelected && styles.optionItemSelected]}
                     onPress={() => {
                       onValueChange(item.value);
-                      setModalVisible(false);
-                      setIsFocused(false);
+                      handleClose();
                     }}
                   >
                     <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
@@ -88,6 +109,7 @@ export function Select({ label, error, selectedValue, onValueChange, options, pl
               }}
               contentContainerStyle={styles.listContainer}
               showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
             />
           </View>
         </View>
@@ -175,6 +197,22 @@ const styles = StyleSheet.create({
   },
   closeButton: {
     padding: theme.spacing.sm,
+  },
+  searchContainer: {
+    paddingHorizontal: theme.spacing.md,
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.xs,
+  },
+  searchInput: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.border.radius.md,
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontFamily.medium,
+    fontSize: theme.typography.size.md,
+    paddingHorizontal: theme.spacing.md,
+    height: 44,
+    borderWidth: 1,
+    borderColor: theme.colors.surfaceElevated,
   },
   listContainer: {
     padding: theme.spacing.md,

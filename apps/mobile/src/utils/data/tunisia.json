@@ -5,15 +5,27 @@
       "villes": [
         {
           "name": "La Marsa",
-          "localities": ["Sidi Bou Said", "Gammarth", "Bhar Lazreg", "La Marsa Plage"]
+          "localities": ["La Marsa Plage", "Sidi Bou Said", "Gammarth", "Bhar Lazreg", "La Marsa Ville", "Marsa Cube", "Sidi Dhrif", "Gammarth Superieur"]
         },
         {
           "name": "Carthage",
-          "localities": ["Carthage Byrsa", "Carthage Dermech", "Amilcar"]
+          "localities": ["Carthage Byrsa", "Carthage Dermech", "Amilcar", "Carthage Presidence", "Carthage Salambo", "Carthage Yasmina"]
         },
         {
           "name": "Centre Ville",
-          "localities": ["Lafayette", "Avenue Habib Bourguiba", "Bab Bhar"]
+          "localities": ["Avenue Habib Bourguiba", "Lafayette", "Bab Bhar", "Passage", "Le Bardo", "Montplaisir", "Bab Souika", "Bab El Khadra"]
+        },
+        {
+          "name": "El Menzah",
+          "localities": ["El Menzah 1", "El Menzah 4", "El Menzah 9", "Mutuelleville", "Notre Dame", "El Menzah 9B"]
+        },
+        {
+          "name": "El Omrane",
+          "localities": ["El Omrane Supérieur", "Ras Tabia", "Jebel Jelloud", "El Ouardia", "Cité Ibn Khaldoun"]
+        },
+        {
+          "name": "Goulette",
+          "localities": ["La Goulette Casino", "Kram", "Kram Ouest", "Kheireddine", "La Goulette Port"]
         }
       ]
     },
@@ -22,11 +34,312 @@
       "villes": [
         {
           "name": "Ariana Ville",
-          "localities": ["Ennasr 1", "Ennasr 2", "El Menzah 8", "El Menzah 5"]
+          "localities": ["Ennasr 1", "Ennasr 2", "El Menzah 5", "El Menzah 6", "El Menzah 7", "El Menzah 8", "Nouvelle Ariana", "Cité Riadh"]
         },
         {
           "name": "Soukra",
-          "localities": ["Dar Fadhal", "Chotrana 1", "Chotrana 2", "Sidi Salah"]
+          "localities": ["Chotrana 1", "Chotrana 2", "Chotrana 3", "Dar Fadhal", "Sidi Salah", "Borj Louzir", "Avenue UMA"]
+        },
+        {
+          "name": "Raoued",
+          "localities": ["Raoued Plage", "Cité El Ghazala", "Borj Touil", "Ariana Soghra", "Technopole El Ghazala"]
+        },
+        {
+          "name": "Mnihla",
+          "localities": ["Mnihla Centre", "Ettadhamen", "Jardins El Menzah 1", "Jardins El Menzah 2"]
+        },
+        {
+          "name": "Kalaat El Andalous",
+          "localities": ["Kalaat El Andalous Centre", "Pont de Bizerte", "El Hissiane"]
+        },
+        {
+          "name": "Sidi Thabet",
+          "localities": ["Sidi Thabet Centre", "Chorfech", "Cité Ennour"]
+        }
+      ]
+    },
+    {
+      "name": "Ben Arous",
+      "villes": [
+        {
+          "name": "Ben Arous",
+          "localities": ["Nouvelle Medina", "Ben Arous Ville", "Chougui", "Megrine", "Cité El Yasmine"]
+        },
+        {
+          "name": "Megrine",
+          "localities": ["Megrine Coteaux", "Megrine Chaker", "Megrine Riadh", "Saint Gobain", "Megrine Jaouhara"]
+        },
+        {
+          "name": "Rades",
+          "localities": ["Rades Plage", "Rades Mongil", "Rades Medina", "Chouchet Rades", "Cité Olympic", "Rades Saline"]
+        },
+        {
+          "name": "Hammam Lif",
+          "localities": ["Hammam Lif Ville", "Bou Kornine", "Ezzahra", "Borj Cedria", "Hammam Lif Centre"]
+        },
+        {
+          "name": "Ezzahra",
+          "localities": ["Ezzahra Plage", "Ezzahra Ville", "El Habib", "Cité Borj El Louzi"]
+        },
+        {
+          "name": "Mornag",
+          "localities": ["Mornag Centre", "Khanguet El Hojjaj", "Jebel Oust", "Bou Mhel El Bassatine"]
+        },
+        {
+          "name": "Bou Mhel el-Bassatine",
+          "localities": ["Bou Mhel Centre", "Cité El Bassatine", "Cité El Wafa"]
+        },
+        {
+          "name": "Fouchana",
+          "localities": ["Fouchana Centre", "Naassen", "Cité El Mzoughi"]
+        },
+        {
+          "name": "El Mourouj",
+          "localities": ["El Mourouj 1", "El Mourouj 3", "El Mourouj 4", "El Mourouj 5", "El Mourouj 6"]
+        }
+      ]
+    },
+    {
+      "name": "Manouba",
+      "villes": [
+        {
+          "name": "Manouba Ville",
+          "localities": ["Denden", "Ksar Said", "Campus Universitaire", "Cité Les Orangers", "Manouba Centre"]
+        },
+        {
+          "name": "Oued Ellil",
+          "localities": ["Chabbaou", "Sanhedja", "Cité El Ouardine", "Oued Ellil Centre"]
+        },
+        {
+          "name": "Tebourba",
+          "localities": ["Tebourba Centre", "El Battan", "Djedeida", "Ansar"]
+        },
+        {
+          "name": "Mornaguia",
+          "localities": ["Mornaguia Centre", "Borj El Amri", "Fej El Bidja"]
+        },
+        {
+          "name": "Douar Hicher",
+          "localities": ["Douar Hicher Centre", "Cité Khaled Ibn El Walid", "Cité Ennasr"]
+        },
+        {
+          "name": "El Battan",
+          "localities": ["El Battan Centre", "Mehrine"]
+        },
+        {
+          "name": "Borj El Amri",
+          "localities": ["Borj El Amri Centre", "Aéroport Borj El Amri"]
+        }
+      ]
+    },
+    {
+      "name": "Nabeul",
+      "villes": [
+        {
+          "name": "Nabeul Ville",
+          "localities": ["Nabeul Centre", "Les Filatures", "El Mrazga", "Neapolis", "Nabeul Plage", "Sidi Mahrsi"]
+        },
+        {
+          "name": "Hammamet",
+          "localities": ["Hammamet Nord", "Hammamet Sud", "Yasmine Hammamet", "Bir Bouregba", "Miramar", "Corniche Hammamet"]
+        },
+        {
+          "name": "Kelibia",
+          "localities": ["Kelibia Plage", "Mansoura", "El Haouaria", "Menzel Temime", "Fort de Kelibia"]
+        },
+        {
+          "name": "Grombalia",
+          "localities": ["Grombalia Centre", "Bou Argoub", "Soliman", "Korba", "Cité Turki"]
+        },
+        {
+          "name": "Korba",
+          "localities": ["Korba Plage", "Korba Centre", "Tazerka", "Diarr El Hojjaj"]
+        },
+        {
+          "name": "Soliman",
+          "localities": ["Soliman Plage", "Soliman Centre", "Bouchrik"]
+        },
+        {
+          "name": "Menzel Temime",
+          "localities": ["Menzel Temime Centre", "Skalba", "Menzel Horr"]
+        },
+        {
+          "name": "Dar Chaabane",
+          "localities": ["Dar Chaabane El Fehri", "El Fehri", "Amroun"]
+        },
+        {
+          "name": "El Haouaria",
+          "localities": ["El Haouaria Centre", "Tazoghrane", "Cap Bon"]
+        },
+        {
+          "name": "Beni Khiar",
+          "localities": ["Beni Khiar Centre", "Maamoura", "Somaa"]
+        }
+      ]
+    },
+    {
+      "name": "Bizerte",
+      "villes": [
+        {
+          "name": "Bizerte Nord",
+          "localities": ["Corniche", "Zarzouna", "Sidi Salem", "Ras Engel", "Cap Blanc", "Ghar El Melh"]
+        },
+        {
+          "name": "Bizerte Sud",
+          "localities": ["Louata", "Teskraya", "Beni Nfez"]
+        },
+        {
+          "name": "Menzel Bourguiba",
+          "localities": ["Menzel Bourguiba Centre", "Tinja", "Joumine", "Cité Ennasr"]
+        },
+        {
+          "name": "Ghar El Melh",
+          "localities": ["Ghar El Melh Centre", "Raf Raf", "Ras Jebel", "Sidi Ali El Mekki", "Raf Raf Plage"]
+        },
+        {
+          "name": "Ras Jebel",
+          "localities": ["Ras Jebel Centre", "Metline", "Sounine"]
+        },
+        {
+          "name": "Mateur",
+          "localities": ["Mateur Centre", "Sejnane", "Cité El Istiklal"]
+        },
+        {
+          "name": "Sejnane",
+          "localities": ["Sejnane Centre", "Cap Serrat", "Tamra"]
+        }
+      ]
+    },
+    {
+      "name": "Zaghouan",
+      "villes": [
+        {
+          "name": "Zaghouan Ville",
+          "localities": ["Temple des Eaux", "Hammam Zriba", "Zaghouan Centre", "Cité El Hadaek"]
+        },
+        {
+          "name": "El Fahs",
+          "localities": ["El Fahs Centre", "Thuburbo Majus", "Bir Mcherga"]
+        },
+        {
+          "name": "Zriba",
+          "localities": ["Zriba Village", "Zriba Hammam", "Cité Ennasr"]
+        },
+        {
+          "name": "Bir Mcherga",
+          "localities": ["Bir Mcherga Centre", "Jebel Oust"]
+        },
+        {
+          "name": "Nadhour",
+          "localities": ["Nadhour Centre", "Saouaf"]
+        }
+      ]
+    },
+    {
+      "name": "Béja",
+      "villes": [
+        {
+          "name": "Béja Nord",
+          "localities": ["Béja Centre", "Cité El Moustakbal", "Kasbah Béja"]
+        },
+        {
+          "name": "Béja Sud",
+          "localities": ["Sidi Smaiel", "Mestouta", "El Skhira"]
+        },
+        {
+          "name": "Nefza",
+          "localities": ["Nefza Centre", "Ouchtata", "Cap Negro", "Zouaraa"]
+        },
+        {
+          "name": "Testour",
+          "localities": ["Testour Centre", "Slouguia", "Ain Younes"]
+        },
+        {
+          "name": "Teboursouk",
+          "localities": ["Teboursouk Centre", "Dougga", "El Monchar"]
+        },
+        {
+          "name": "Medjez el-Bab",
+          "localities": ["Medjez el-Bab Centre", "Goubellat", "Sidi Medien"]
+        }
+      ]
+    },
+    {
+      "name": "Jendouba",
+      "villes": [
+        {
+          "name": "Jendouba Ville",
+          "localities": ["Jendouba Centre", "Cité El Khadhra", "Jendouba Nord"]
+        },
+        {
+          "name": "Tabarka",
+          "localities": ["Tabarka Centre", "Port de Tabarka", "Aéroport Tabarka", "Melloula", "Aïn Draham"]
+        },
+        {
+          "name": "Aïn Draham",
+          "localities": ["Aïn Draham Centre", "Beni M'Tir", "Babouch", "Hammam Bourguiba"]
+        },
+        {
+          "name": "Ghardimaou",
+          "localities": ["Ghardimaou Centre", "Feidja", "Wadi Meliz"]
+        },
+        {
+          "name": "Fernana",
+          "localities": ["Fernana Centre", "Oued Ghrib", "Bou Hertma"]
+        }
+      ]
+    },
+    {
+      "name": "Le Kef",
+      "villes": [
+        {
+          "name": "Le Kef Est",
+          "localities": ["Kef Medina", "Kasbah du Kef", "Cité Barnoussi"]
+        },
+        {
+          "name": "Le Kef Ouest",
+          "localities": ["Kef West Centre", "Cité El Khadhra"]
+        },
+        {
+          "name": "Dahmani",
+          "localities": ["Dahmani Centre", "Ebba Ksour", "Zouarine"]
+        },
+        {
+          "name": "Tajerouine",
+          "localities": ["Tajerouine Centre", "Menzel Salem", "El Griaa"]
+        },
+        {
+          "name": "Sers",
+          "localities": ["Sers Centre", "Lorbeus", "El Ksour"]
+        },
+        {
+          "name": "Sakiet Sidi Youssef",
+          "localities": ["Sakiet Centre", "Touiref"]
+        }
+      ]
+    },
+    {
+      "name": "Siliana",
+      "villes": [
+        {
+          "name": "Siliana Ville",
+          "localities": ["Siliana Nord", "Siliana Sud", "Cité El Moustakbal", "Siliana Centre"]
+        },
+        {
+          "name": "Makthar",
+          "localities": ["Makthar Centre", "Souk El Jemaa", "Kesra"]
+        },
+        {
+          "name": "Bou Arada",
+          "localities": ["Bou Arada Centre", "Gaâfour", "El Krib"]
+        },
+        {
+          "name": "Bargou",
+          "localities": ["Bargou Centre", "Jebel Bargou"]
+        },
+        {
+          "name": "Kesra",
+          "localities": ["Kesra Village", "Kesra El Olia"]
         }
       ]
     },
@@ -35,11 +348,101 @@
       "villes": [
         {
           "name": "Sousse Ville",
-          "localities": ["Bouhsina", "Sousse Medina", "Khezama"]
+          "localities": ["Sousse Medina", "Bouhsina", "Khezama Nord", "Khezama Sud", "Corniche", "Riadh", "Erriadh", "Tafala"]
         },
         {
           "name": "Hammam Sousse",
-          "localities": ["Kantaoui", "El Kantaoui"]
+          "localities": ["Port El Kantaoui", "Hammam Sousse Plage", "Sahloul 1", "Sahloul 2", "Sahloul 3", "Sahloul 4", "El Kantaoui Golf"]
+        },
+        {
+          "name": "Msaken",
+          "localities": ["Msaken Centre", "Cité Ennour", "Habib Thameur", "Kondar", "Borjine"]
+        },
+        {
+          "name": "Akouda",
+          "localities": ["Akouda Centre", "Chott Meriem", "Kalaa Kebira", "Kalaa Seghira"]
+        },
+        {
+          "name": "Kalaa Kebira",
+          "localities": ["Kalaa Kebira Centre", "Cité El Moustakbal"]
+        },
+        {
+          "name": "Kalaa Seghira",
+          "localities": ["Kalaa Seghira Centre", "Cité Ennessim"]
+        },
+        {
+          "name": "Enfidha",
+          "localities": ["Enfidha Ville", "Aéroport Enfidha", "Bouficha", "Hergla"]
+        },
+        {
+          "name": "Hergla",
+          "localities": ["Hergla Plage", "Hergla Village", "El Madfoun"]
+        },
+        {
+          "name": "Bouficha",
+          "localities": ["Bouficha Centre", "Ain Rahma"]
+        }
+      ]
+    },
+    {
+      "name": "Monastir",
+      "villes": [
+        {
+          "name": "Monastir Ville",
+          "localities": ["Monastir Medina", "Skanes", "Dkhila", "Falaises", "Hethliua", "Corniche Monastir", "Cité Agba"]
+        },
+        {
+          "name": "Jemmal",
+          "localities": ["Jemmal Centre", "Zaouiet Kontoch", "Touza", "Bir El Bey"]
+        },
+        {
+          "name": "Moknine",
+          "localities": ["Moknine Centre", "Teboulba", "Ksar Hellal", "Sayada", "Lamta", "Bouhjar", "Amiret Touazra"]
+        },
+        {
+          "name": "Ksar Hellal",
+          "localities": ["Ksar Hellal Centre", "Cité Ryadh", "Cité Rose"]
+        },
+        {
+          "name": "Teboulba",
+          "localities": ["Port de Teboulba", "Teboulba Centre", "Sousse Zaouia"]
+        },
+        {
+          "name": "Bekalta",
+          "localities": ["Bekalta Centre", "Sahline", "Ouerdanine", "Bekalta Plage"]
+        },
+        {
+          "name": "Sahline",
+          "localities": ["Sahline Centre", "Moôtmar", "Shedlia"]
+        }
+      ]
+    },
+    {
+      "name": "Mahdia",
+      "villes": [
+        {
+          "name": "Mahdia Ville",
+          "localities": ["Mahdia Medina", "Hiboun", "Zouila", "Rejiche", "Salakta", "Borj El Kebir", "Cap Africa"]
+        },
+        {
+          "name": "Ksour Essef",
+          "localities": ["Ksour Essef Centre", "Salakta", "El Jem", "Chebba", "Cité El Bassatine"]
+        },
+        {
+          "name": "El Jem",
+          "localities": ["El Jem Centre", "Amphithéâtre El Jem", "Teboulbou"]
+        },
+        {
+          "name": "Chebba",
+          "localities": ["Chebba Plage", "Chebba Centre", "La Chebba Port"]
+        },
+        {
+          "name": "Melloulèche",
+          "localities": ["Melloulèche Centre", "Sidi Alouane"]
+        },
+        {
+          "name": "Sidi Alouane",
+          "localities": ["Sidi Alouane Centre", "Zelba"]
         }
       ]
     },
@@ -48,11 +451,316 @@
       "villes": [
         {
           "name": "Sfax Ville",
-          "localities": ["Picville", "Sfax Medina", "Bab Bhar"]
+          "localities": ["Sfax Medina", "Picville", "Bab Bhar", "Route El Ain", "Route Teniour", "Route Soukra", "Route Gremda", "Route Manzel Chaker"]
         },
         {
           "name": "Sakiet Ezzit",
-          "localities": ["Centre", "Sidi Salah"]
+          "localities": ["Sakiet Ezzit Centre", "Sidi Salah", "Cité El Ons", "Chihia", "Technopole Sfax"]
+        },
+        {
+          "name": "Sakiet Eddaïer",
+          "localities": ["Sakiet Eddaïer Centre", "Sidi Mansour", "Markaz Kaaniche", "Plage Sidi Mansour"]
+        },
+        {
+          "name": "Sfax Ouest",
+          "localities": ["Route Soukra", "Cité El Habib", "Route de Gabès KM 3"]
+        },
+        {
+          "name": "Sfax Sud",
+          "localities": ["Cité Erriadh", "El Ain", "Gremda"]
+        },
+        {
+          "name": "Thyna",
+          "localities": ["Thyna Centre", "Aéroport Sfax-Thyna", "Route de Gabès", "Cité El Olfa"]
+        },
+        {
+          "name": "Agareb",
+          "localities": ["Agareb Centre", "Ghraiba"]
+        },
+        {
+          "name": "Jebiniana",
+          "localities": ["Jebiniana Centre", "El Hencha", "El Amra"]
+        },
+        {
+          "name": "Kerkennah",
+          "localities": ["Remla", "Attaya", "El Abbassia", "Sidi Youssef", "Ouled Yaneg", "El Ramla"]
+        },
+        {
+          "name": "Mahares",
+          "localities": ["Mahares Centre", "Mahares Plage", "Skhira"]
+        }
+      ]
+    },
+    {
+      "name": "Kairouan",
+      "villes": [
+        {
+          "name": "Kairouan Nord",
+          "localities": ["Kairouan Medina", "Cité Mohamed Ali", "Mansoura", "Okba", "Grande Mosquée", "Cité Ennasr"]
+        },
+        {
+          "name": "Kairouan Sud",
+          "localities": ["Cité El Jelaa", "Barrouta", "Cité El Manar"]
+        },
+        {
+          "name": "Sbikha",
+          "localities": ["Sbikha Centre", "Ain Bou Morra"]
+        },
+        {
+          "name": "Oueslatia",
+          "localities": ["Oueslatia Centre", "Jebel Ousselat"]
+        },
+        {
+          "name": "Haffouz",
+          "localities": ["Haffouz Centre", "El Ala"]
+        },
+        {
+          "name": "Bou Hajla",
+          "localities": ["Bou Hajla Centre", "Nasrallah", "Cherarda"]
+        }
+      ]
+    },
+    {
+      "name": "Kasserine",
+      "villes": [
+        {
+          "name": "Kasserine Nord",
+          "localities": ["Kasserine Centre", "Cité El Khadhra", "Jebel Chambi", "Cité Azouz"]
+        },
+        {
+          "name": "Kasserine Sud",
+          "localities": ["Cité Ennour", "Cité Ez Zouhour"]
+        },
+        {
+          "name": "Sbeitla",
+          "localities": ["Sbeitla Centre", "Site Archéologique Sbeitla", "Cité El Ksar"]
+        },
+        {
+          "name": "Thala",
+          "localities": ["Thala Centre", "Hidra"]
+        },
+        {
+          "name": "Feriana",
+          "localities": ["Feriana Centre", "Majel Bel Abbès"]
+        },
+        {
+          "name": "Foussana",
+          "localities": ["Foussana Centre", "El Ayoun"]
+        }
+      ]
+    },
+    {
+      "name": "Sidi Bouzid",
+      "villes": [
+        {
+          "name": "Sidi Bouzid Est",
+          "localities": ["Sidi Bouzid Centre", "Cité El Khadhra", "Cité Ennasr"]
+        },
+        {
+          "name": "Sidi Bouzid Ouest",
+          "localities": ["Cité El Habib", "Cité Filahi"]
+        },
+        {
+          "name": "Meknassy",
+          "localities": ["Meknassy Centre", "Mazzouna", "Menzel Bouzaiene"]
+        },
+        {
+          "name": "Regueb",
+          "localities": ["Regueb Centre", "Saouaf"]
+        },
+        {
+          "name": "Jilma",
+          "localities": ["Jilma Centre", "Cebbala Ouled Asker"]
+        },
+        {
+          "name": "Bir El Hafey",
+          "localities": ["Bir El Hafey Centre", "Sidi Ali Ben Aoun"]
+        }
+      ]
+    },
+    {
+      "name": "Gabès",
+      "villes": [
+        {
+          "name": "Gabès Ville",
+          "localities": ["Gabès Centre", "Corniche Gabès", "Jara", "Bab El Bhar"]
+        },
+        {
+          "name": "Gabès Sud",
+          "localities": ["Chenini Gabès", "Oasis de Chenini", "Cité El Menzel"]
+        },
+        {
+          "name": "Gabès Ouest",
+          "localities": ["Bouchama", "Tebelbou"]
+        },
+        {
+          "name": "Matmata",
+          "localities": ["Matmata Ancienne", "Nouvelle Matmata", "Tamezret"]
+        },
+        {
+          "name": "El Hamma",
+          "localities": ["El Hamma Centre", "Station Thermale El Hamma"]
+        },
+        {
+          "name": "Mareth",
+          "localities": ["Mareth Centre", "Arram", "Zarat"]
+        },
+        {
+          "name": "Metouia",
+          "localities": ["Metouia Centre", "Oudhref", "Ghannouch"]
+        }
+      ]
+    },
+    {
+      "name": "Medenine",
+      "villes": [
+        {
+          "name": "Djerba Houmt Souk",
+          "localities": ["Houmt Souk Centre", "Port de Djerba", "Hara Sghira (Erriadh)", "Hara Kebira", "Taourit", "Mellita"]
+        },
+        {
+          "name": "Djerba Midoun",
+          "localities": ["Midoun Centre", "Zone Touristique Djerba", "Aghir", "Mezraya", "Lella Hadhria", "Phare de Taguermess", "Tezdaine"]
+        },
+        {
+          "name": "Djerba Ajim",
+          "localities": ["Ajim Port", "Guellala", "Cedriane", "El May"]
+        },
+        {
+          "name": "Zarzis",
+          "localities": ["Zarzis Centre", "Zarzis Mouensa", "Sangho", "Sonia", "Port de Zarzis", "Ougla", "Hassi Jerbi"]
+        },
+        {
+          "name": "Medenine Nord",
+          "localities": ["Medenine Centre", "Cité El Jala", "Cité 20 Mars"]
+        },
+        {
+          "name": "Medenine Sud",
+          "localities": ["Cité El Habib", "Beni Khedache"]
+        },
+        {
+          "name": "Ben Guerdane",
+          "localities": ["Ben Guerdane Centre", "Ras Jedir", "El Chahbania"]
+        },
+        {
+          "name": "Beni Khedache",
+          "localities": ["Beni Khedache Centre", "Ksar Hallouf"]
+        }
+      ]
+    },
+    {
+      "name": "Tataouine",
+      "villes": [
+        {
+          "name": "Tataouine Nord",
+          "localities": ["Tataouine Centre", "Cité El Mhra", "Ksar Megabla"]
+        },
+        {
+          "name": "Tataouine Sud",
+          "localities": ["Chenini Tataouine", "Douiret", "Ksar Ouled Soltane"]
+        },
+        {
+          "name": "Ghomrassen",
+          "localities": ["Ghomrassen Centre", "Ksar Hadada", "Guermessa"]
+        },
+        {
+          "name": "Remada",
+          "localities": ["Remada Centre", "Borj El Khadra"]
+        },
+        {
+          "name": "Dehibat",
+          "localities": ["Dehibat Centre", "Poste Frontière Dehibat"]
+        },
+        {
+          "name": "Bir Lahmar",
+          "localities": ["Bir Lahmar Centre", "Cité Ennasr"]
+        }
+      ]
+    },
+    {
+      "name": "Gafsa",
+      "villes": [
+        {
+          "name": "Gafsa Ville",
+          "localities": ["Gafsa Centre", "Cité El Moustakbal", "Piscines Romaines", "Cité Ennour"]
+        },
+        {
+          "name": "El Ksar",
+          "localities": ["El Ksar Centre", "Aéroport Gafsa-Ksar", "Lalla"]
+        },
+        {
+          "name": "Metlaoui",
+          "localities": ["Metlaoui Centre", "Gorges de Selja", "Cité des Mines"]
+        },
+        {
+          "name": "Redeyef",
+          "localities": ["Redeyef Centre", "Cité Phosphate"]
+        },
+        {
+          "name": "Moularès",
+          "localities": ["Moularès Centre", "Cité Ennasr"]
+        },
+        {
+          "name": "El Guettar",
+          "localities": ["El Guettar Centre", "Oasis El Guettar", "Belkhir"]
+        },
+        {
+          "name": "Mdhilla",
+          "localities": ["Mdhilla Centre", "Cité Workers"]
+        }
+      ]
+    },
+    {
+      "name": "Tozeur",
+      "villes": [
+        {
+          "name": "Tozeur Ville",
+          "localities": ["Tozeur Centre", "Palmeraie de Tozeur", "Cité El Haouach", "Zone Touristique Tozeur", "Aéroport Tozeur-Nefta", "Cité Jeunesse"]
+        },
+        {
+          "name": "Nefta",
+          "localities": ["Nefta Centre", "La Corbeille de Nefta", "Zaouia Sidi Bou Ali", "Oasis de Nefta"]
+        },
+        {
+          "name": "Degache",
+          "localities": ["Degache Centre", "El Hamma du Jerid", "Kriz"]
+        },
+        {
+          "name": "Tamerza",
+          "localities": ["Tamerza Village", "Cascade de Tamerza", "Chebika", "Mides"]
+        },
+        {
+          "name": "Hazoua",
+          "localities": ["Hazoua Centre", "Poste Frontière Hazoua"]
+        }
+      ]
+    },
+    {
+      "name": "Kebili",
+      "villes": [
+        {
+          "name": "Kebili Nord",
+          "localities": ["Kebili Centre", "Mansoura", "Telmine", "Jemna"]
+        },
+        {
+          "name": "Kebili Sud",
+          "localities": ["Cité Bayaz", "Bazma", "Janoura"]
+        },
+        {
+          "name": "Douz Nord",
+          "localities": ["Douz Centre", "Zone Touristique Douz", "Sahara Camp", "Place du Festival"]
+        },
+        {
+          "name": "Douz Sud",
+          "localities": ["Zaafrane", "Noufalia", "Ghidir", "El Golaa"]
+        },
+        {
+          "name": "Souk Lahad",
+          "localities": ["Souk Lahad Centre", "Fatnassa", "El Golâa"]
+        },
+        {
+          "name": "Faouar",
+          "localities": ["Faouar Centre", "Sabria", "Ghidma"]
         }
       ]
     }
