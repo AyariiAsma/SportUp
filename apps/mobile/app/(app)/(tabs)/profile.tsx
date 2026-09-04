@@ -75,18 +75,8 @@ export default function ProfileScreen() {
 
           {/* ── Rank score ── */}
           <View style={styles.rankCard}>
-            <View style={styles.rankHeader}>
-              <Text style={styles.rankScore}>🏅 {rank.score} pts</Text>
-              <Text style={styles.rankNext}>
-                {rank.nextLevel
-                  ? `${rank.pointsToNextLevel} pts to ${LEVEL_LABELS[rank.nextLevel] ?? rank.nextLevel}`
-                  : 'Top rank reached'}
-              </Text>
-            </View>
-            <View style={styles.rankBarTrack}>
-              <View style={[styles.rankBarFill, { width: `${Math.round(rank.progress * 100)}%` }]} />
-            </View>
-            <Text style={styles.rankHint}>Earn points when an organizer confirms your presence at a run.</Text>
+            <Text style={styles.rankScore}>🏅 {rank.score} pts</Text>
+            <Text style={styles.rankHint}>Earn 1 point per KM when an organizer confirms your presence at a run.</Text>
           </View>
           {(displayProfile?.region || displayProfile?.city || displayProfile?.locality) && (
             <Text style={styles.city}>
@@ -135,6 +125,12 @@ export default function ProfileScreen() {
 
         {/* ── Actions ── */}
         <View style={styles.actions}>
+          <Button
+            title="🏆 View Leaderboard"
+            variant="secondary"
+            onPress={() => router.push('/(app)/(tabs)/leaderboard')}
+            style={styles.actionBtn}
+          />
           <Button
             title="My Runs"
             variant="secondary"
@@ -231,32 +227,10 @@ const styles = StyleSheet.create({
     padding: theme.spacing.sm,
     marginBottom: theme.spacing.sm,
   },
-  rankHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
   rankScore: {
     fontSize: theme.typography.size.md,
     color: theme.colors.text,
     fontFamily: theme.typography.fontFamily.bold,
-  },
-  rankNext: {
-    fontSize: theme.typography.size.xs,
-    color: theme.colors.textMuted,
-    fontFamily: theme.typography.fontFamily.medium,
-  },
-  rankBarTrack: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    overflow: 'hidden',
-  },
-  rankBarFill: {
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: theme.colors.primary,
   },
   rankHint: {
     marginTop: 6,

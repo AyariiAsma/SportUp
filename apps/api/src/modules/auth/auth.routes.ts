@@ -142,6 +142,12 @@ export async function authRoutes(app: FastifyInstance) {
       },
     });
 
+    // Mark user as online
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { isOnline: true, lastSeenAt: new Date() },
+    });
+
     // Strip passwordHash from response
     const { passwordHash: _, isActive: __, ...userData } = user;
 
@@ -212,8 +218,15 @@ export async function authRoutes(app: FastifyInstance) {
 
   // ─── Logout ────────────────────────────────────────────
 
-  app.post('/logout', async (request, reply) => {
+  app.post('/logout', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: userId } = request.user as { id: string };
     const { refreshToken } = request.body as { refreshToken: string };
+
+    // Mark user as offline immediately
+    await prisma.user.update({
+      where: { id: userId },
+      data: { isOnline: false, lastSeenAt: new Date() },
+    });
 
     if (refreshToken) {
       await prisma.refreshToken.deleteMany({

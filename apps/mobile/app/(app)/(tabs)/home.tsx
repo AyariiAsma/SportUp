@@ -114,7 +114,7 @@ export default function HomeScreen() {
         {onlineUsers && onlineUsers.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>🟢 ACTIVE RUNNERS NOW ({onlineUsers.length})</Text>
+            <Text style={styles.sectionTitle}>🏃 RUNNERS ({onlineUsers.length})</Text>
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.onlineUsersList}>
               {onlineUsers.map((u) => (

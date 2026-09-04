@@ -1,29 +1,17 @@
-import { Difficulty, RunningLevel } from '../types/enums';
+import { RunningLevel } from '../types/enums';
 
 // ─── Rank Scoring ────────────────────────────────────────
 // A runner earns points only when the event organizer confirms
 // their presence at a run they participated in.
 
-export const ATTENDANCE_BASE_POINTS = 10;
-export const POINTS_PER_KM = 2;
+export const POINTS_PER_KM = 1;
 
-export const DIFFICULTY_BONUS: Record<Difficulty, number> = {
-  [Difficulty.BEGINNER]: 0,
-  [Difficulty.INTERMEDIATE]: 5,
-  [Difficulty.ADVANCED]: 10,
-  [Difficulty.ELITE]: 15,
-};
-
-/** Points granted for one confirmed attendance. */
+/** Points granted for one confirmed attendance: 1 pt per km run. */
 export function computeAttendancePoints(input: {
   distanceKm?: number | null;
-  difficulty?: Difficulty | string | null;
+  difficulty?: string | null;
 }): number {
-  const distancePoints = Math.round((input.distanceKm ?? 0) * POINTS_PER_KM);
-  const bonus = input.difficulty
-    ? (DIFFICULTY_BONUS[input.difficulty as Difficulty] ?? 0)
-    : 0;
-  return ATTENDANCE_BASE_POINTS + distancePoints + bonus;
+  return Math.round((input.distanceKm ?? 0) * POINTS_PER_KM);
 }
 
 /** Minimum rank score required to hold each running level. */

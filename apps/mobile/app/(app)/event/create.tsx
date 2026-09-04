@@ -50,10 +50,13 @@ export default function CreateEventScreen() {
     }
   });
 
-  // Auto-select first sport if none selected
+  // Auto-select running sport
   useEffect(() => {
     if (sports.length > 0 && !watch('sportId')) {
-      setValue('sportId', sports[0].id, { shouldValidate: true });
+      const runningSport = sports.find(s => s.name.toLowerCase() === 'running') || sports[0];
+      if (runningSport) {
+        setValue('sportId', runningSport.id, { shouldValidate: true });
+      }
     }
   }, [sports]);
 
@@ -69,15 +72,57 @@ export default function CreateEventScreen() {
   const watchDescription = watch('description');
   const watchStartAt = watch('startAt');
 
-  const goToStep2 = async () => {
-    const isTitleValid = await trigger('title');
-    const isDescValid = await trigger('description');
-    const isSportValid = await trigger('sportId');
+  const [maxPeopleStr, setMaxPeopleStr] = useState('10');
+  const [distanceStr, setDistanceStr] = useState('5');
 
-    if (!isSportValid) {
-      Alert.alert('Sport Required', 'Please select a sport category.');
+  const handleMaxPeopleChange = (val: string, onChange: (v: any) => void) => {
+    setMaxPeopleStr(val);
+    if (val.trim() === '') {
+      onChange(undefined);
       return;
     }
+    const parsed = parseInt(val, 10);
+    onChange(isNaN(parsed) ? undefined : parsed);
+  };
+
+  const handleMaxPeopleBlur = (onChange: (v: any) => void) => {
+    const parsed = parseInt(maxPeopleStr, 10);
+    if (isNaN(parsed) || parsed < 2) {
+      setMaxPeopleStr('10');
+      onChange(10);
+    } else {
+      setMaxPeopleStr(String(parsed));
+      onChange(parsed);
+    }
+  };
+
+  const handleDistanceChange = (val: string, onChange: (v: any) => void) => {
+    setDistanceStr(val);
+    if (val.trim() === '') {
+      onChange(undefined);
+      return;
+    }
+    const parsed = parseFloat(val);
+    onChange(isNaN(parsed) ? undefined : parsed);
+  };
+
+  const handleDistanceBlur = (onChange: (v: any) => void) => {
+    const parsed = parseFloat(distanceStr);
+    if (isNaN(parsed) || parsed <= 0) {
+      setDistanceStr('5');
+      onChange(5);
+    } else {
+      setDistanceStr(String(parsed));
+      onChange(parsed);
+    }
+  };
+
+  const goToStep2 = async () => {
+    handleMaxPeopleBlur((v) => setValue('maxParticipants', v));
+    handleDistanceBlur((v) => setValue('distanceKm', v));
+    const isTitleValid = await trigger('title');
+    const isDescValid = await trigger('description');
+
     if (!isTitleValid || !isDescValid) {
       Alert.alert('Missing Info', 'Please provide a valid title (at least 3 characters) and description (at least 10 characters).');
       return;
@@ -161,21 +206,14 @@ export default function CreateEventScreen() {
           <View>
             <Text style={styles.pageTitle}>Create Run Activity</Text>
             
-            <Text style={styles.sectionTitle}>Select Sport</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsRow}>
-              {sports.map(sport => (
-                <TouchableOpacity
-                  key={sport.id}
-                  style={[styles.chip, selectedSportId === sport.id && styles.chipActive]}
-                  onPress={() => setValue('sportId', sport.id, { shouldValidate: true })}
-                >
-                  <Text style={[styles.chipText, selectedSportId === sport.id && styles.chipTextActive]}>
-                    {sport.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            {errors.sportId && <Text style={styles.errorText}>{errors.sportId.message}</Text>}
+            <Text style={styles.sectionTitle}>Activity Type</Text>
+            <View style={styles.activityBadgeContainer}>
+              <View style={styles.activityBadge}>
+                <Text style={styles.activityBadgeIcon}>🏃</Text>
+                <Text style={styles.activityBadgeText}>Running</Text>
+              </View>
+              <Text style={styles.activityBadgeSubtitle}>SportUp is dedicated exclusively to running events</Text>
+            </View>
 
             <Text style={styles.sectionTitle}>Details</Text>
             <Controller
@@ -216,12 +254,13 @@ export default function CreateEventScreen() {
                 <Controller
                   control={control}
                   name="maxParticipants"
-                  render={({ field: { onChange, value } }) => (
+                  render={({ field: { onChange } }) => (
                     <TextInput
                       label="Max People"
                       keyboardType="numeric"
-                      onChangeText={(val) => onChange(parseInt(val) || 10)}
-                      value={String(value)}
+                      value={maxPeopleStr}
+                      onChangeText={(val) => handleMaxPeopleChange(val, onChange)}
+                      onBlur={() => handleMaxPeopleBlur(onChange)}
                       error={errors.maxParticipants?.message}
                     />
                   )}
@@ -231,15 +270,13 @@ export default function CreateEventScreen() {
                 <Controller
                   control={control}
                   name="distanceKm"
-                  render={({ field: { onChange, value } }) => (
+                  render={({ field: { onChange } }) => (
                     <TextInput
                       label="Distance (km)"
                       keyboardType="numeric"
-                      onChangeText={(val) => {
-                        const parsed = parseFloat(val);
-                        onChange(isNaN(parsed) ? undefined : parsed);
-                      }}
-                      value={value != null ? String(value) : ''}
+                      value={distanceStr}
+                      onChangeText={(val) => handleDistanceChange(val, onChange)}
+                      onBlur={() => handleDistanceBlur(onChange)}
                       error={errors.distanceKm?.message}
                     />
                   )}
@@ -447,6 +484,33 @@ const styles = StyleSheet.create({
   dateTimeSub: { color: theme.colors.textMuted, fontFamily: theme.typography.fontFamily.medium, fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 },
   dateTimeSub2: { color: theme.colors.textMuted, fontFamily: theme.typography.fontFamily.regular, fontSize: 11, marginTop: 2 },
   dateTimeVal: { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.bold, fontSize: 14, textAlign: 'center' },
+  activityBadgeContainer: {
+    marginBottom: theme.spacing.md,
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.md,
+    borderRadius: theme.border.radius.md,
+    borderWidth: 1,
+    borderColor: 'rgba(255,107,53,0.3)',
+  },
+  activityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  activityBadgeIcon: {
+    fontSize: 20,
+  },
+  activityBadgeText: {
+    fontSize: theme.typography.size.lg,
+    fontFamily: theme.typography.fontFamily.bold,
+    color: theme.colors.primary,
+  },
+  activityBadgeSubtitle: {
+    fontSize: theme.typography.size.xs,
+    fontFamily: theme.typography.fontFamily.regular,
+    color: theme.colors.textMuted,
+    marginTop: 4,
+  },
   chipsRow: { flexDirection: 'row', marginBottom: theme.spacing.md },
   chip: { backgroundColor: theme.colors.surface, paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm, borderRadius: theme.border.radius.round, marginRight: theme.spacing.sm },
   chipActive: { backgroundColor: theme.colors.primary },

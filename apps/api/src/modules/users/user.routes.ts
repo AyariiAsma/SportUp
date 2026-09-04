@@ -239,7 +239,7 @@ export async function userRoutes(app: FastifyInstance) {
         lastSeenAt: true,
       },
       orderBy: [{ isOnline: 'desc' }, { lastSeenAt: 'desc' }],
-      take: 50,
+      take: 100,
     });
 
     return reply.send({ success: true, data: users });

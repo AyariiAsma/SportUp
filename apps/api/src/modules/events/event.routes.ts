@@ -218,17 +218,29 @@ export async function eventRoutes(app: FastifyInstance) {
   app.post('/', { preHandler: [app.authenticate] }, async (request, reply) => {
     const { id: organizerId } = request.user as { id: string };
     const body = createEventSchema.parse(request.body);
+    let targetSportId = body.sportId;
+    if (!targetSportId) {
+      const runningSport = await prisma.sport.findFirst({
+        where: { name: { equals: 'running', mode: 'insensitive' } },
+      });
+      targetSportId = runningSport ? runningSport.id : (await prisma.sport.findFirst())?.id;
+    }
 
-    const sport = await prisma.sport.findUnique({ where: { id: body.sportId } });
+    if (!targetSportId) {
+      return reply.status(400).send({ success: false, message: 'No sport available' });
+    }
+
+    const sport = await prisma.sport.findUnique({ where: { id: targetSportId } });
     if (!sport) {
       return reply.status(400).send({ success: false, message: 'Invalid sport' });
     }
 
-    const { routeCoordinates, ...eventData } = body;
+    const { routeCoordinates, sportId: _ignored, ...eventData } = body;
 
     const event = await prisma.event.create({
       data: {
         ...eventData,
+        sportId: targetSportId,
         startAt: new Date(eventData.startAt),
         endAt: eventData.endAt ? new Date(eventData.endAt) : undefined,
         organizerId,
@@ -246,6 +258,13 @@ export async function eventRoutes(app: FastifyInstance) {
         route: true,
         _count: { select: { participants: { where: { status: 'CONFIRMED' } } } },
       },
+    });
+
+    // Auto-enroll the organizer as a CONFIRMED participant so they
+    // appear in the participants list and can receive rank points
+    // when their own attendance is confirmed.
+    await prisma.eventParticipant.create({
+      data: { eventId: event.id, userId: organizerId, status: 'CONFIRMED' },
     });
 
     return reply.status(201).send({ success: true, data: formatEvent(event, organizerId) });
@@ -360,6 +379,10 @@ export async function eventRoutes(app: FastifyInstance) {
 
     const event = await prisma.event.findUnique({ where: { id: eventId } });
     if (!event) return reply.status(404).send({ success: false, message: 'Event not found' });
+
+    if (event.organizerId === userId) {
+      return reply.status(400).send({ success: false, message: 'The organizer cannot leave their own run' });
+    }
 
     const computedStatus = computeEventStatus(event.startAt, event.endAt, event.durationMin);
     if (computedStatus === 'STARTED') return reply.status(400).send({ success: false, message: 'Cannot leave a run that has already started' });

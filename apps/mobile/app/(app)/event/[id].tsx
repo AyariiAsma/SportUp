@@ -419,34 +419,44 @@ export default function EventDetailScreen() {
                 Confirming a runner's presence awards them rank points and can level up their rank.
               </Text>
               {event.participants && event.participants.length > 0 ? (
-                event.participants.map((p: any) => (
-                  <View key={p.id} style={styles.attendanceRow}>
-                    <Text style={styles.attendanceName} numberOfLines={1}>
-                      {p.user.name}
-                      {p.attendance === 'PRESENT' && p.pointsAwarded ? ` · +${p.pointsAwarded} pts` : ''}
-                    </Text>
-                    <View style={styles.attendanceActions}>
-                      <TouchableOpacity
-                        style={[styles.attendanceBtn, p.attendance === 'PRESENT' && styles.attendanceBtnPresent]}
-                        disabled={attendanceMutation.isPending}
-                        onPress={() => attendanceMutation.mutate({ userId: p.userId, attendance: 'PRESENT' })}
-                      >
-                        <Text style={[styles.attendanceBtnText, p.attendance === 'PRESENT' && styles.attendanceBtnTextActive]}>
-                          Present
+                event.participants.map((p: any) => {
+                  const isOrganizerRow = p.userId === event.organizerId;
+                  return (
+                    <View key={p.id} style={styles.attendanceRow}>
+                      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={styles.attendanceName} numberOfLines={1}>
+                          {p.user.name}
+                          {p.attendance === 'PRESENT' && p.pointsAwarded ? ` · +${p.pointsAwarded} pts` : ''}
                         </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.attendanceBtn, p.attendance === 'ABSENT' && styles.attendanceBtnAbsent]}
-                        disabled={attendanceMutation.isPending}
-                        onPress={() => attendanceMutation.mutate({ userId: p.userId, attendance: 'ABSENT' })}
-                      >
-                        <Text style={[styles.attendanceBtnText, p.attendance === 'ABSENT' && styles.attendanceBtnTextActive]}>
-                          Absent
-                        </Text>
-                      </TouchableOpacity>
+                        {isOrganizerRow && (
+                          <View style={styles.organizerBadge}>
+                            <Text style={styles.organizerBadgeText}>Organizer</Text>
+                          </View>
+                        )}
+                      </View>
+                      <View style={styles.attendanceActions}>
+                        <TouchableOpacity
+                          style={[styles.attendanceBtn, p.attendance === 'PRESENT' && styles.attendanceBtnPresent]}
+                          disabled={attendanceMutation.isPending}
+                          onPress={() => attendanceMutation.mutate({ userId: p.userId, attendance: 'PRESENT' })}
+                        >
+                          <Text style={[styles.attendanceBtnText, p.attendance === 'PRESENT' && styles.attendanceBtnTextActive]}>
+                            Present
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.attendanceBtn, p.attendance === 'ABSENT' && styles.attendanceBtnAbsent]}
+                          disabled={attendanceMutation.isPending}
+                          onPress={() => attendanceMutation.mutate({ userId: p.userId, attendance: 'ABSENT' })}
+                        >
+                          <Text style={[styles.attendanceBtnText, p.attendance === 'ABSENT' && styles.attendanceBtnTextActive]}>
+                            Absent
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
-                  </View>
-                ))
+                  );
+                })
               ) : (
                 <Text style={styles.noComments}>Nobody joined this run.</Text>
               )}
@@ -618,6 +628,17 @@ const styles = StyleSheet.create({
   attendanceBtnAbsent: { backgroundColor: theme.colors.error, borderColor: theme.colors.error },
   attendanceBtnText: { color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.semiBold, fontSize: theme.typography.size.sm },
   attendanceBtnTextActive: { color: '#fff' },
+  organizerBadge: {
+    backgroundColor: theme.colors.secondary + '33',
+    borderRadius: theme.border.radius.round,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  organizerBadgeText: {
+    color: theme.colors.secondary,
+    fontFamily: theme.typography.fontFamily.semiBold,
+    fontSize: 10,
+  },
   commentCard: { backgroundColor: theme.colors.surface, borderRadius: theme.border.radius.md, padding: theme.spacing.md, marginBottom: theme.spacing.sm },
   commentHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing.xs },
   commentAvatar: { width: 32, height: 32, borderRadius: 16, backgroundColor: theme.colors.surfaceElevated, justifyContent: 'center', alignItems: 'center', marginRight: theme.spacing.sm },
