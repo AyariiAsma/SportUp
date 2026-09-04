@@ -30,12 +30,6 @@ export function AddressSelector({
   const localities = selectedVille ? selectedVille.localities : [];
 
   useEffect(() => {
-    if (initialRegion) setRegion(initialRegion);
-    if (initialCity) setCity(initialCity);
-    if (initialLocality) setLocality(initialLocality);
-  }, [initialRegion, initialCity, initialLocality]);
-
-  useEffect(() => {
     onChange(region, city, locality);
   }, [region, city, locality]);
 
