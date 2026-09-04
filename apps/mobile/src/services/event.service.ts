@@ -1,5 +1,13 @@
 import { api } from './api';
-import type { ApiResponse, SportEvent, EventDetail, EventComment, CreateEventInput } from '@sportup/shared';
+import type {
+  ApiResponse,
+  SportEvent,
+  EventDetail,
+  EventComment,
+  EventParticipant,
+  CreateEventInput,
+} from '@sportup/shared';
+import type { AttendanceStatus } from '@sportup/shared';
 
 export const eventService = {
   async getNearbyEvents(lat: number, lng: number, radius = 50): Promise<SportEvent[]> {
@@ -34,6 +42,23 @@ export const eventService = {
 
   async leaveEvent(id: string): Promise<void> {
     await api.delete(`/events/${id}/join`);
+  },
+
+  async getParticipants(eventId: string): Promise<EventParticipant[]> {
+    const response = await api.get<ApiResponse<EventParticipant[]>>(`/events/${eventId}/participants`);
+    return response.data.data;
+  },
+
+  async markAttendance(
+    eventId: string,
+    userId: string,
+    attendance: AttendanceStatus,
+  ): Promise<{ attendance: AttendanceStatus; pointsAwarded: number; rankScore?: number; runningLevel?: string }> {
+    const response = await api.patch<ApiResponse<{ attendance: AttendanceStatus; pointsAwarded: number; rankScore?: number; runningLevel?: string }>>(
+      `/events/${eventId}/participants/${userId}/attendance`,
+      { attendance },
+    );
+    return response.data.data;
   },
 
   async getComments(eventId: string): Promise<EventComment[]> {

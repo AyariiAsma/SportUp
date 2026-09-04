@@ -6,7 +6,9 @@ import {
   createRouteSchema,
   createCommentSchema,
   eventQuerySchema,
+  markAttendanceSchema,
 } from '@sportup/shared';
+import { applyAttendanceDecision } from '../rank/rank.service';
 
 // Helper: compute event status from current time
 function computeEventStatus(startAt: Date, endAt: Date | null, durationMin: number | null): string {
@@ -374,11 +376,57 @@ export async function eventRoutes(app: FastifyInstance) {
 
     const participants = await prisma.eventParticipant.findMany({
       where: { eventId, status: 'CONFIRMED' },
-      include: { user: { select: { id: true, name: true, username: true, avatar: true } } },
+      include: { user: { select: { id: true, name: true, username: true, avatar: true, rankScore: true, runningLevel: true } } },
       orderBy: { joinedAt: 'asc' },
     });
 
     return reply.send({ success: true, data: participants });
+  });
+
+  // ─── Confirm Participant Attendance (organizer only) ───
+  // Confirming presence is what grants the runner rank points.
+
+  app.patch('/:id/participants/:userId/attendance', { preHandler: [app.authenticate] }, async (request, reply) => {
+    const { id: eventId, userId: participantUserId } = request.params as { id: string; userId: string };
+    const { id: currentUserId } = request.user as { id: string };
+    const { attendance } = markAttendanceSchema.parse(request.body);
+
+    const event = await prisma.event.findUnique({ where: { id: eventId } });
+    if (!event) return reply.status(404).send({ success: false, message: 'Event not found' });
+    if (event.organizerId !== currentUserId) {
+      return reply.status(403).send({ success: false, message: 'Only the organizer can confirm attendance' });
+    }
+
+    const computedStatus = computeEventStatus(event.startAt, event.endAt, event.durationMin);
+    if (computedStatus === 'UPCOMING') {
+      return reply.status(400).send({ success: false, message: 'Attendance can only be confirmed once the run has started' });
+    }
+    if (event.status === 'CANCELLED') {
+      return reply.status(400).send({ success: false, message: 'This run has been cancelled' });
+    }
+
+    const participant = await prisma.eventParticipant.findUnique({
+      where: { eventId_userId: { eventId, userId: participantUserId } },
+    });
+    if (!participant || participant.status !== 'CONFIRMED') {
+      return reply.status(404).send({ success: false, message: 'Participant not found in this run' });
+    }
+
+    if (participant.attendance === attendance) {
+      return reply.send({
+        success: true,
+        data: { attendance, pointsAwarded: participant.pointsAwarded },
+        message: 'Attendance unchanged',
+      });
+    }
+
+    const result = await applyAttendanceDecision({
+      participantId: participant.id,
+      attendance,
+      event: { id: event.id, title: event.title, distanceKm: event.distanceKm, difficulty: event.difficulty },
+    });
+
+    return reply.send({ success: true, data: result });
   });
 
   // ─── Get Event Comments ────────────────────────────────

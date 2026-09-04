@@ -28,6 +28,12 @@ export default function ProfileScreen() {
   });
 
   const displayProfile = profile || user;
+  const rank = (profile as any)?.rank ?? {
+    score: (displayProfile as any)?.rankScore ?? 0,
+    nextLevel: null,
+    pointsToNextLevel: 0,
+    progress: 0,
+  };
   const runningLevelLabel = displayProfile?.runningLevel
     ? LEVEL_LABELS[displayProfile.runningLevel] || displayProfile.runningLevel
     : '🌱 Beginner Runner';
@@ -66,6 +72,22 @@ export default function ProfileScreen() {
           <Text style={styles.name}>{displayProfile?.name}</Text>
           <Text style={styles.username}>@{displayProfile?.username}</Text>
           <Text style={styles.runningLevel}>{runningLevelLabel}</Text>
+
+          {/* ── Rank score ── */}
+          <View style={styles.rankCard}>
+            <View style={styles.rankHeader}>
+              <Text style={styles.rankScore}>🏅 {rank.score} pts</Text>
+              <Text style={styles.rankNext}>
+                {rank.nextLevel
+                  ? `${rank.pointsToNextLevel} pts to ${LEVEL_LABELS[rank.nextLevel] ?? rank.nextLevel}`
+                  : 'Top rank reached'}
+              </Text>
+            </View>
+            <View style={styles.rankBarTrack}>
+              <View style={[styles.rankBarFill, { width: `${Math.round(rank.progress * 100)}%` }]} />
+            </View>
+            <Text style={styles.rankHint}>Earn points when an organizer confirms your presence at a run.</Text>
+          </View>
           {(displayProfile?.region || displayProfile?.city || displayProfile?.locality) && (
             <Text style={styles.city}>
               📍 {[displayProfile.region, displayProfile.city, displayProfile.locality].filter(Boolean).join(', ')}
@@ -101,8 +123,8 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statEmoji}>✅</Text>
-            <Text style={styles.statValue}>{(profile as any)?.runsCompleted ?? 0}</Text>
-            <Text style={styles.statLabel}>Completed</Text>
+            <Text style={styles.statValue}>{(profile as any)?.runsAttended ?? 0}</Text>
+            <Text style={styles.statLabel}>Presence Confirmed</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statEmoji}>📏</Text>
@@ -201,6 +223,46 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontFamily: theme.typography.fontFamily.semiBold,
     marginBottom: theme.spacing.xs,
+  },
+  rankCard: {
+    alignSelf: 'stretch',
+    backgroundColor: theme.colors.surfaceElevated,
+    borderRadius: theme.border.radius.md,
+    padding: theme.spacing.sm,
+    marginBottom: theme.spacing.sm,
+  },
+  rankHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  rankScore: {
+    fontSize: theme.typography.size.md,
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontFamily.bold,
+  },
+  rankNext: {
+    fontSize: theme.typography.size.xs,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontFamily.medium,
+  },
+  rankBarTrack: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+  },
+  rankBarFill: {
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.colors.primary,
+  },
+  rankHint: {
+    marginTop: 6,
+    fontSize: theme.typography.size.xs,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontFamily.regular,
   },
   city: {
     fontSize: theme.typography.size.sm,

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { Difficulty, RunningLevel, PostCategory } from '../types/enums';
+import { AttendanceStatus, Difficulty, RunningLevel, PostCategory } from '../types/enums';
 
 // ─── Auth Schemas ────────────────────────────────────────
 
@@ -86,6 +86,10 @@ export const createEventSchema = z.object({
 });
 
 export const updateEventSchema = createEventSchema.partial();
+
+export const markAttendanceSchema = z.object({
+  attendance: z.nativeEnum(AttendanceStatus),
+});
 
 export const routePointSchema = z.object({
   lat: z.number().min(-90).max(90),
