@@ -113,21 +113,15 @@ export default function EditProfileScreen() {
               )}
             />
 
-            <Controller
-              control={control}
-              name="region"
-              render={({ field: { onChange, value } }) => (
-                <AddressSelector
-                  initialRegion={value}
-                  initialCity={watch('city')}
-                  initialLocality={watch('locality')}
-                  onChange={(region, city, locality) => {
-                    setValue('region', region, { shouldValidate: true });
-                    setValue('city', city, { shouldValidate: true });
-                    setValue('locality', locality, { shouldValidate: true });
-                  }}
-                />
-              )}
+            <AddressSelector
+              initialRegion={user?.region || ''}
+              initialCity={user?.city || ''}
+              initialLocality={user?.locality || ''}
+              onChange={(region, city, locality) => {
+                setValue('region', region, { shouldValidate: true });
+                setValue('city', city, { shouldValidate: true });
+                setValue('locality', locality, { shouldValidate: true });
+              }}
             />
 
             <Button
