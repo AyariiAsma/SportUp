@@ -458,7 +458,7 @@ export async function eventRoutes(app: FastifyInstance) {
     const { id: eventId } = request.params as { id: string };
 
     const comments = await prisma.comment.findMany({
-      where: { eventId },
+      where: { eventId, parentCommentId: null },
       include: { 
         author: { select: { id: true, name: true, username: true, avatar: true } },
         replies: {
@@ -484,8 +484,16 @@ export async function eventRoutes(app: FastifyInstance) {
     const event = await prisma.event.findUnique({ where: { id: eventId } });
     if (!event) return reply.status(404).send({ success: false, message: 'Event not found' });
 
+    let targetParentId = (request.body as any)?.parentCommentId;
+    if (targetParentId) {
+      const parentComment = await prisma.comment.findUnique({ where: { id: targetParentId } });
+      if (parentComment && parentComment.parentCommentId) {
+        targetParentId = parentComment.parentCommentId;
+      }
+    }
+
     const comment = await prisma.comment.create({
-      data: { eventId, authorId, content, parentCommentId: (request.body as any)?.parentCommentId },
+      data: { eventId, authorId, content, parentCommentId: targetParentId },
       include: { 
         author: { select: { id: true, name: true, username: true, avatar: true } },
         replies: true 

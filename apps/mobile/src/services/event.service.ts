@@ -66,8 +66,8 @@ export const eventService = {
     return response.data.data;
   },
 
-  async postComment(eventId: string, content: string): Promise<EventComment> {
-    const response = await api.post<ApiResponse<EventComment>>(`/events/${eventId}/comments`, { content });
+  async postComment(eventId: string, content: string, parentCommentId?: string): Promise<EventComment> {
+    const response = await api.post<ApiResponse<EventComment>>(`/events/${eventId}/comments`, { content, parentCommentId });
     return response.data.data;
   },
 

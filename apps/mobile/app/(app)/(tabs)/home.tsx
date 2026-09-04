@@ -3,7 +3,8 @@ import {
   ActivityIndicator, TouchableOpacity, ScrollView, RefreshControl, Image
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import { theme } from '../../../src/theme';
 import { useLocationStore } from '../../../src/stores/location.store';
 import { useAuthStore } from '../../../src/stores/auth.store';
@@ -12,7 +13,7 @@ import { userSearchService } from '../../../src/services/user.service';
 import { OnlineIndicator } from '../../../src/components/common/OnlineIndicator';
 import { resolveMediaUrl } from '../../../src/services/post.service';
 import { EventCard } from '../../../src/components/events/EventCard';
-import { format } from 'date-fns';
+import { motivationService } from '../../../src/services/motivation.service';
 
 function getGreeting(): string {
   const h = new Date().getHours();
@@ -23,8 +24,32 @@ function getGreeting(): string {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { latitude, longitude } = useLocationStore();
   const { user } = useAuthStore();
+
+  const { data: motivation, refetch: refetchMotivation } = useQuery({
+    queryKey: ['motivation', 'today'],
+    queryFn: () => motivationService.getTodayMotivation(),
+  });
+
+  const toggleLikeMotivationMutation = useMutation({
+    mutationFn: () => motivationService.toggleLikeTodayMotivation(),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['motivation', 'today'], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          isLiked: data.isLiked,
+          likesCount: data.likesCount,
+        };
+      });
+    },
+  });
+
+  const handleToggleLikeMotivation = () => {
+    toggleLikeMotivationMutation.mutate();
+  };
 
   const { data: nearbyEvents = [], isLoading: nearbyLoading, refetch: refetchEvents } = useQuery({
     queryKey: ['events', 'nearby', latitude, longitude],
@@ -41,6 +66,7 @@ export default function HomeScreen() {
   const handleRefresh = () => {
     refetchEvents();
     refetchUsers();
+    refetchMotivation();
   };
 
   const popularEvents = [...nearbyEvents]
@@ -172,15 +198,27 @@ export default function HomeScreen() {
         )}
 
         {/* ── Running Motivation ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>💪 DAILY MOTIVATION</Text>
-          <View style={styles.motivationCard}>
-            <Text style={styles.motivationQuote}>
-              "The miracle isn't that I finished. The miracle is that I had the courage to start."
-            </Text>
-            <Text style={styles.motivationAuthor}>— John Bingham</Text>
+        {motivation && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>💪 DAILY MOTIVATION</Text>
+            <View style={styles.motivationCard}>
+              <Text style={styles.motivationQuote}>"{motivation.quote}"</Text>
+              <View style={styles.motivationFooter}>
+                <Text style={styles.motivationAuthor}>— {motivation.author}</Text>
+                <TouchableOpacity
+                  style={styles.motivationLikeBtn}
+                  onPress={handleToggleLikeMotivation}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.motivationHeart}>{motivation.isLiked ? '❤️' : '🤍'}</Text>
+                  <Text style={[styles.motivationLikeCount, motivation.isLiked && styles.motivationLikeCountActive]}>
+                    {motivation.likesCount}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
-        </View>
+        )}
 
         {/* ── Community CTA ── */}
         <View style={styles.section}>
@@ -342,6 +380,34 @@ const styles = StyleSheet.create({
     color: theme.colors.primary,
     fontFamily: theme.typography.fontFamily.semiBold,
     fontSize: theme.typography.size.sm,
+    flex: 1,
+  },
+  motivationFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: theme.spacing.xs,
+    gap: 12,
+  },
+  motivationLikeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    gap: 6,
+  },
+  motivationHeart: {
+    fontSize: 14,
+  },
+  motivationLikeCount: {
+    color: theme.colors.textMuted,
+    fontSize: theme.typography.size.xs,
+    fontFamily: theme.typography.fontFamily.bold,
+  },
+  motivationLikeCountActive: {
+    color: theme.colors.primary,
   },
   communityCard: {
     backgroundColor: theme.colors.surface,

@@ -251,7 +251,7 @@ export async function postRoutes(app: FastifyInstance) {
 
     const [comments, total] = await Promise.all([
       prisma.comment.findMany({
-        where: { postId },
+        where: { postId, parentCommentId: null },
         skip,
         take: parseInt(limit),
         orderBy: { createdAt: 'desc' },
@@ -269,7 +269,7 @@ export async function postRoutes(app: FastifyInstance) {
           },
         },
       }),
-      prisma.comment.count({ where: { postId } }),
+      prisma.comment.count({ where: { postId, parentCommentId: null } }),
     ]);
 
     return reply.send({
@@ -296,12 +296,20 @@ export async function postRoutes(app: FastifyInstance) {
       return reply.status(404).send({ success: false, message: 'Post not found' });
     }
 
+    let targetParentId = body.parentCommentId;
+    if (targetParentId) {
+      const parentComment = await prisma.comment.findUnique({ where: { id: targetParentId } });
+      if (parentComment && parentComment.parentCommentId) {
+        targetParentId = parentComment.parentCommentId;
+      }
+    }
+
     const comment = await prisma.comment.create({
       data: { 
         authorId, 
         postId, 
         content: body.content,
-        parentCommentId: body.parentCommentId,
+        parentCommentId: targetParentId,
       },
       include: {
         author: {

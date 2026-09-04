@@ -68,10 +68,13 @@ export default function EventDetailScreen() {
     },
   });
 
+  const [activeReplyParentId, setActiveReplyParentId] = useState<string | undefined>(undefined);
+
   const commentMutation = useMutation({
-    mutationFn: (content: string) => eventService.postComment(id as string, content),
+    mutationFn: (content: string) => eventService.postComment(id as string, content, activeReplyParentId),
     onSuccess: () => {
       setCommentText('');
+      setActiveReplyParentId(undefined);
       queryClient.invalidateQueries({ queryKey: ['event', id] });
     },
     onError: () => Alert.alert('Error', 'Could not post comment'),
@@ -214,6 +217,17 @@ export default function EventDetailScreen() {
           </View>
         </View>
         <CommentText text={item.content} style={styles.commentContent} />
+        
+        <TouchableOpacity
+          onPress={() => {
+            setActiveReplyParentId(item.id);
+            setCommentText(`@${item.author.username} `);
+          }}
+          style={{ marginLeft: 36, marginTop: 4, marginBottom: 4 }}
+        >
+          <Text style={{ color: theme.colors.primary, fontSize: 11, fontWeight: 'bold' }}>↩ Reply</Text>
+        </TouchableOpacity>
+
         {/* Replies */}
         {item.replies && item.replies.length > 0 && (
           <View style={styles.repliesContainer}>
@@ -239,6 +253,15 @@ export default function EventDetailScreen() {
                   </View>
                 </View>
                 <CommentText text={reply.content} style={[styles.commentContent, { marginLeft: 8 }]} />
+                <TouchableOpacity
+                  onPress={() => {
+                    setActiveReplyParentId(item.id);
+                    setCommentText(`@${reply.author.username} `);
+                  }}
+                  style={{ marginLeft: 8, marginTop: 4 }}
+                >
+                  <Text style={{ color: theme.colors.primary, fontSize: 11, fontWeight: 'bold' }}>↩ Reply</Text>
+                </TouchableOpacity>
               </View>
             ))}
           </View>

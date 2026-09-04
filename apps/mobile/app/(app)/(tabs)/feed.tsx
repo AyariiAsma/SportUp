@@ -18,14 +18,17 @@ function CommentItem({
   postId,
   currentUserId,
   depth = 0,
+  onReplyToUser,
 }: {
   comment: PostComment;
   postId: string;
   currentUserId: string;
   depth?: number;
+  onReplyToUser?: (username: string) => void;
 }) {
   const queryClient = useQueryClient();
-  const [showReply, setShowReply] = useState(false);
+  const [showReplyList, setShowReplyList] = useState(true);
+  const [showReplyInput, setShowReplyInput] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [editMode, setEditMode] = useState(false);
   const [editText, setEditText] = useState(comment.content);
@@ -37,7 +40,7 @@ function CommentItem({
     mutationFn: (text: string) => postService.addComment(postId, text, comment.id),
     onSuccess: () => {
       setReplyText('');
-      setShowReply(false);
+      setShowReplyInput(false);
       queryClient.invalidateQueries({ queryKey: ['comments', postId] });
     },
     onError: () => Alert.alert('Error', 'Could not post reply'),
@@ -57,6 +60,15 @@ function CommentItem({
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['comments', postId] }),
     onError: () => Alert.alert('Error', 'Could not delete comment'),
   });
+
+  const handleReplyPress = () => {
+    if (depth > 0 && onReplyToUser) {
+      onReplyToUser(comment.author.username);
+    } else {
+      setShowReplyInput(true);
+      setShowReplyList(true);
+    }
+  };
 
   return (
     <View style={[styles.commentItem, depth > 0 && styles.commentItemNested]}>
@@ -106,17 +118,23 @@ function CommentItem({
         <CommentText text={comment.content} style={styles.commentContent} />
       )}
 
-      {depth === 0 && (
-        <TouchableOpacity onPress={() => setShowReply(v => !v)} style={styles.replyToggle}>
-          <Text style={styles.replyToggleText}>
-            {comment.replies && comment.replies.length > 0
-              ? `💬 ${comment.replies.length} ${comment.replies.length === 1 ? 'reply' : 'replies'}`
-              : '↩ Reply'}
-          </Text>
+      {/* Reply Action Button for every comment */}
+      <View style={styles.commentActionBar}>
+        <TouchableOpacity onPress={handleReplyPress} style={styles.replyToggle}>
+          <Text style={styles.replyToggleText}>↩ Reply</Text>
         </TouchableOpacity>
-      )}
 
-      {showReply && depth === 0 && (
+        {depth === 0 && comment.replies && comment.replies.length > 0 && (
+          <TouchableOpacity onPress={() => setShowReplyList(v => !v)} style={styles.replyToggle}>
+            <Text style={styles.replyCountText}>
+              💬 {comment.replies.length} {comment.replies.length === 1 ? 'reply' : 'replies'}
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Nested Replies */}
+      {showReplyList && depth === 0 && (
         <>
           {comment.replies?.map(reply => (
             <CommentItem
@@ -125,22 +143,30 @@ function CommentItem({
               postId={postId}
               currentUserId={currentUserId}
               depth={1}
+              onReplyToUser={(username) => {
+                setShowReplyInput(true);
+                setShowReplyList(true);
+                setReplyText(`@${username} `);
+              }}
             />
           ))}
-          <View style={styles.replyInputRow}>
-            <MentionTextInput
-              value={replyText}
-              onChangeText={setReplyText}
-              placeholder="Write a reply..."
-            />
-            <TouchableOpacity
-              style={[styles.sendSmallBtn, !replyText.trim() && { opacity: 0.4 }]}
-              onPress={() => replyText.trim() && replyMutation.mutate(replyText.trim())}
-              disabled={!replyText.trim() || replyMutation.isPending}
-            >
-              <Text style={styles.sendSmallBtnText}>→</Text>
-            </TouchableOpacity>
-          </View>
+
+          {showReplyInput && (
+            <View style={styles.replyInputRow}>
+              <MentionTextInput
+                value={replyText}
+                onChangeText={setReplyText}
+                placeholder={`Reply to ${comment.author.name}...`}
+              />
+              <TouchableOpacity
+                style={[styles.sendSmallBtn, !replyText.trim() && { opacity: 0.4 }]}
+                onPress={() => replyText.trim() && replyMutation.mutate(replyText.trim())}
+                disabled={!replyText.trim() || replyMutation.isPending}
+              >
+                <Text style={styles.sendSmallBtnText}>→</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </>
       )}
     </View>
@@ -494,8 +520,16 @@ const styles = StyleSheet.create({
   commentActionBtn: { padding: 4 },
   commentActionText: { fontSize: 12 },
   commentContent: { color: theme.colors.textSecondary, fontFamily: theme.typography.fontFamily.regular, fontSize: theme.typography.size.sm, lineHeight: 18, marginLeft: 36 },
-  replyToggle: { marginLeft: 36, marginTop: 4 },
-  replyToggleText: { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.medium, fontSize: 11 },
+  commentActionBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginLeft: 36,
+    marginTop: 4,
+  },
+  replyToggle: {},
+  replyToggleText: { color: theme.colors.primary, fontFamily: theme.typography.fontFamily.bold, fontSize: 11 },
+  replyCountText: { color: theme.colors.textMuted, fontFamily: theme.typography.fontFamily.medium, fontSize: 11 },
   replyInputRow: {
     flexDirection: 'row', alignItems: 'flex-end', gap: theme.spacing.sm,
     marginLeft: 28, marginTop: theme.spacing.sm,
