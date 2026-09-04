@@ -15,8 +15,11 @@ import { useQuery } from '@tanstack/react-query';
 import { AddressSelector } from '../../../src/components/common/AddressSelector';
 import { format } from 'date-fns';
 
+import { useAuthStore } from '../../../src/stores/auth.store';
+
 export default function CreateEventScreen() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const { latitude, longitude, city: userCity } = useLocationStore();
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState(1);
@@ -29,7 +32,7 @@ export default function CreateEventScreen() {
     queryFn: () => sportService.getSports(),
   });
 
-  const { control, handleSubmit, formState: { errors }, setValue, watch, trigger } = useForm<CreateEventInput>({
+  const { control, handleSubmit, formState: { errors }, setValue, watch, trigger, reset } = useForm<CreateEventInput>({
     resolver: zodResolver(createEventSchema),
     defaultValues: {
       title: '',
@@ -41,14 +44,22 @@ export default function CreateEventScreen() {
       durationMin: 60,
       lat: latitude || 36.8065,
       lng: longitude || 10.1815,
-      city: userCity || '',
+      city: user?.city || userCity || '',
       locationName: '',
-      region: '',
-      locality: '',
+      region: user?.region || '',
+      locality: user?.locality || '',
       country: 'Tunisia',
       distanceKm: 5,
     }
   });
+
+  useEffect(() => {
+    if (user) {
+      if (!watch('region')) setValue('region', user.region || '');
+      if (!watch('city')) setValue('city', user.city || '');
+      if (!watch('locality')) setValue('locality', user.locality || '');
+    }
+  }, [user?.id]);
 
   // Auto-select running sport
   useEffect(() => {
@@ -199,7 +210,7 @@ export default function CreateEventScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {step === 1 && (
@@ -397,9 +408,9 @@ export default function CreateEventScreen() {
             <Text style={styles.pageTitle}>📍 Location</Text>
 
             <AddressSelector
-              initialRegion={watchRegion}
-              initialCity={watchCity}
-              initialLocality={watchLocality}
+              region={watchRegion}
+              city={watchCity}
+              locality={watchLocality}
               onChange={(region, city, locality) => {
                 setValue('region', region, { shouldValidate: true });
                 setValue('city', city, { shouldValidate: true });

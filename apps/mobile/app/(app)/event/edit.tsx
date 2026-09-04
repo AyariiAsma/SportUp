@@ -109,7 +109,7 @@ export default function EditEventScreen() {
 
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {step === 1 && (
@@ -298,21 +298,15 @@ export default function EditEventScreen() {
           <View>
             <Text style={styles.pageTitle}>📍 Edit Location</Text>
 
-            <Controller
-              control={control}
-              name="region"
-              render={({ field: { onChange, value } }) => (
-                <AddressSelector
-                  initialRegion={value}
-                  initialCity={watch('city')}
-                  initialLocality={watch('locality')}
-                  onChange={(region, city, locality) => {
-                    setValue('region', region, { shouldValidate: true });
-                    setValue('city', city, { shouldValidate: true });
-                    setValue('locality', locality, { shouldValidate: true });
-                  }}
-                />
-              )}
+            <AddressSelector
+              region={watch('region')}
+              city={watch('city')}
+              locality={watch('locality')}
+              onChange={(region, city, locality) => {
+                setValue('region', region, { shouldValidate: true });
+                setValue('city', city, { shouldValidate: true });
+                setValue('locality', locality, { shouldValidate: true });
+              }}
             />
 
             <Controller

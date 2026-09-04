@@ -21,7 +21,7 @@ export default function EditProfileScreen() {
     authService.getMe().catch(() => {/* silent */});
   }, []);
 
-  const { control, handleSubmit, formState: { errors }, watch, setValue } = useForm<UpdateProfileInput>({
+  const { control, handleSubmit, formState: { errors }, setValue, watch } = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
     values: {
       name: user?.name || '',
@@ -50,6 +50,10 @@ export default function EditProfileScreen() {
       setIsLoading(false);
     }
   };
+
+  const regionValue = watch('region');
+  const cityValue = watch('city');
+  const localityValue = watch('locality');
 
   return (
     <SafeAreaView style={styles.container}>
@@ -114,13 +118,13 @@ export default function EditProfileScreen() {
             />
 
             <AddressSelector
-              region={watch('region')}
-              city={watch('city')}
-              locality={watch('locality')}
-              onChange={(region, city, locality) => {
-                setValue('region', region, { shouldValidate: true });
-                setValue('city', city, { shouldValidate: true });
-                setValue('locality', locality, { shouldValidate: true });
+              region={regionValue}
+              city={cityValue}
+              locality={localityValue}
+              onChange={(newRegion, newCity, newLocality) => {
+                setValue('region', newRegion, { shouldValidate: true });
+                setValue('city', newCity, { shouldValidate: true });
+                setValue('locality', newLocality, { shouldValidate: true });
               }}
             />
 

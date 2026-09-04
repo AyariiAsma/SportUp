@@ -360,12 +360,15 @@ export default function EventDetailScreen() {
           {/* ── Location Section ── */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📍 Location</Text>
-            {event.locationName ? <Text style={styles.locationName}>{event.locationName}</Text> : null}
-            {(event.locality || event.city || event.region || event.country) && (
-              <Text style={styles.city}>
-                {[event.locality, event.city, event.region, event.country].filter(Boolean).join(', ')}
-              </Text>
-            )}
+            <Text style={styles.city}>
+              {[
+                event.locationName ? `📌 ${event.locationName}` : null,
+                event.locality,
+                event.city,
+                event.region,
+                event.country || 'Tunisia'
+              ].filter(Boolean).join(' • ')}
+            </Text>
 
             <Button
               title="Get Directions 🗺️"

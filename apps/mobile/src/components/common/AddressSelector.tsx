@@ -22,10 +22,10 @@ export function AddressSelector({
 }: AddressSelectorProps) {
   const governorates = tunisiaData.governorates;
   
-  const selectedGov = governorates.find((g) => g.name === region);
+  const selectedGov = governorates.find((g) => g.name.trim().toLowerCase() === region.trim().toLowerCase());
   const villes = selectedGov ? selectedGov.villes : [];
   
-  const selectedVille = villes.find((v) => v.name === city);
+  const selectedVille = villes.find((v) => v.name.trim().toLowerCase() === city.trim().toLowerCase());
   const localities = selectedVille ? selectedVille.localities : [];
 
   const handleRegionSelect = (govName: string) => {
