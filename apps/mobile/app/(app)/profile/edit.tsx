@@ -8,17 +8,22 @@ import { Button } from '../../../src/components/common/Button';
 import { TextInput } from '../../../src/components/common/TextInput';
 import { AddressSelector } from '../../../src/components/common/AddressSelector';
 import { useAuthStore } from '../../../src/stores/auth.store';
+import { authService } from '../../../src/services/auth.service';
 import { api } from '../../../src/services/api';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export default function EditProfileScreen() {
   const router = useRouter();
   const { user, setUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    authService.getMe().catch(() => {/* silent */});
+  }, []);
+
   const { control, handleSubmit, formState: { errors }, watch, setValue } = useForm<UpdateProfileInput>({
     resolver: zodResolver(updateProfileSchema),
-    defaultValues: {
+    values: {
       name: user?.name || '',
       username: user?.username || '',
       bio: user?.bio || '',
