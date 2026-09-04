@@ -52,7 +52,10 @@ export default function OnboardingScreen() {
 
     try {
       setIsLoading(true);
-      await api.patch('/users/me', { runningLevel: selected });
+      const res = await api.patch('/users/me', { runningLevel: selected });
+      if (res.data?.data) {
+        useAuthStore.getState().setUser(res.data.data);
+      }
       await setOnboardingComplete();
       router.replace('/(app)/location');
     } catch (err) {
