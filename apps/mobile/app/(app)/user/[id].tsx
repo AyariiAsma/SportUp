@@ -5,6 +5,7 @@ import { useAuthStore } from '../../../src/stores/auth.store';
 import { userSearchService } from '../../../src/services/user.service';
 import { theme } from '../../../src/theme';
 import { Button } from '../../../src/components/common/Button';
+import { resolveMediaUrl } from '../../../src/services/post.service';
 import type { UserProfile } from '@sportup/shared';
 
 const LEVEL_LABELS: Record<string, string> = {
@@ -115,7 +116,7 @@ export default function UserProfileScreen() {
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
             {profile.avatar ? (
-              <Image source={{ uri: profile.avatar }} style={styles.avatar} />
+              <Image key={profile.avatar} source={{ uri: resolveMediaUrl(profile.avatar) }} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarLetter}>{profile.name?.charAt(0) || 'R'}</Text>
@@ -149,12 +150,12 @@ export default function UserProfileScreen() {
             <Text style={styles.rankScore}>🏅 {rank.score} pts</Text>
           </View>
 
-          {(profile.region || profile.city || profile.locality) && (
+          {Boolean(profile.region || profile.city || profile.locality) ? (
             <Text style={styles.city}>
               📍 {[profile.region, profile.city, profile.locality].filter(Boolean).join(', ')}
             </Text>
-          )}
-          {profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
+          ) : null}
+          {Boolean(profile.bio) ? <Text style={styles.bio}>{profile.bio}</Text> : null}
 
           {/* ── Social counts ── */}
           <View style={styles.socialRow}>

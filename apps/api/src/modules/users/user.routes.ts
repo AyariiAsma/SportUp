@@ -135,9 +135,12 @@ export async function userRoutes(app: FastifyInstance) {
       }
     }
 
-    // A self-declared running level seeds the rank score, so an earned rank
-    // recomputation never demotes the runner below what they signed up as.
     const data: Record<string, unknown> = { ...body };
+    const rawAvatar = (request.body as any)?.avatar;
+    if (rawAvatar !== undefined) {
+      data.avatar = rawAvatar;
+    }
+
     if (body.runningLevel) {
       const current = await prisma.user.findUniqueOrThrow({ where: { id }, select: { rankScore: true } });
       data.rankScore = Math.max(current.rankScore, minScoreForLevel(body.runningLevel));

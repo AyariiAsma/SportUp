@@ -53,9 +53,13 @@ export interface Post {
 export function resolveMediaUrl(url: string): string {
   if (!url) return url;
   if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  // Strip /api/v1 from base and prepend
-  const base = getApiUrl().replace('/api/v1', '');
-  return `${base}${url}`;
+  
+  const baseUrl = getApiUrl(); // e.g. http://10.13.54.159:3000/api/v1
+  if (url.startsWith('/api/v1')) {
+    const origin = baseUrl.replace('/api/v1', '');
+    return `${origin}${url}`;
+  }
+  return `${baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
 export const postService = {

@@ -8,7 +8,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { theme } from '../../../src/theme';
 import { Button } from '../../../src/components/common/Button';
 import { TextInput } from '../../../src/components/common/TextInput';
-import { postService } from '../../../src/services/post.service';
+import { postService, resolveMediaUrl } from '../../../src/services/post.service';
 import { mediaService } from '../../../src/services/media.service';
 import { useAuthStore } from '../../../src/stores/auth.store';
 import { UserTagInput } from '../../../src/components/common/UserTagInput';
@@ -111,7 +111,7 @@ export default function CreatePostScreen() {
             <View style={styles.postHeader}>
               <View style={styles.avatarPlaceholder}>
                 {user?.avatar ? (
-                  <Image source={{ uri: user.avatar }} style={styles.avatarImg} />
+                  <Image source={{ uri: resolveMediaUrl(user.avatar) }} style={styles.avatarImg} />
                 ) : (
                   <Text style={styles.avatarLetter}>{user?.name?.charAt(0) || '?'}</Text>
                 )}

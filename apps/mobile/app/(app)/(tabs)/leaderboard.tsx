@@ -15,6 +15,7 @@ import { useRef, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { rankService, LeaderboardEntry } from '../../../src/services/rank.service';
 import { useAuthStore } from '../../../src/stores/auth.store';
+import { resolveMediaUrl } from '../../../src/services/post.service';
 import { theme } from '../../../src/theme';
 
 // ─── Medal colours ────────────────────────────────────────────
@@ -51,7 +52,7 @@ function PodiumCard({ entry, position }: { entry: LeaderboardEntry; position: 1 
       <Text style={styles.podiumIcon}>{medal.icon}</Text>
       <View style={[styles.podiumAvatar, { borderColor: medal.color }]}>
         {entry.avatar ? (
-          <Image source={{ uri: entry.avatar }} style={styles.podiumAvatarImg} />
+          <Image source={{ uri: resolveMediaUrl(entry.avatar) }} style={styles.podiumAvatarImg} />
         ) : (
           <View style={[styles.podiumAvatarFallback, { backgroundColor: medal.color + '33' }]}>
             <Text style={[styles.podiumAvatarLetter, { color: medal.color }]}>
@@ -93,7 +94,7 @@ function RankRow({ entry, isMe }: { entry: LeaderboardEntry; isMe: boolean }) {
         {/* Avatar */}
         <View style={styles.rowAvatarWrap}>
           {entry.avatar ? (
-            <Image source={{ uri: entry.avatar }} style={styles.rowAvatar} />
+            <Image source={{ uri: resolveMediaUrl(entry.avatar) }} style={styles.rowAvatar} />
           ) : (
             <View style={styles.rowAvatarFallback}>
               <Text style={styles.rowAvatarLetter}>{entry.name.charAt(0).toUpperCase()}</Text>

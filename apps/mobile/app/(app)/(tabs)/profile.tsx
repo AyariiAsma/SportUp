@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView, Image, RefreshControl, Modal, FlatList, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, RefreshControl, Modal, FlatList, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '../../../src/stores/auth.store';
@@ -7,6 +8,7 @@ import { userSearchService } from '../../../src/services/user.service';
 import { api } from '../../../src/services/api';
 import { theme } from '../../../src/theme';
 import { Button } from '../../../src/components/common/Button';
+import { resolveMediaUrl } from '../../../src/services/post.service';
 import { useState } from 'react';
 import type { UserProfile } from '@sportup/shared';
 import type { ApiResponse } from '@sportup/shared';
@@ -80,7 +82,7 @@ export default function ProfileScreen() {
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
             {displayProfile?.avatar ? (
-              <Image source={{ uri: displayProfile.avatar }} style={styles.avatar} />
+              <Image key={displayProfile.avatar} source={{ uri: resolveMediaUrl(displayProfile.avatar) }} style={styles.avatar} />
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Text style={styles.avatarLetter}>{displayProfile?.name?.charAt(0) || 'R'}</Text>
@@ -96,12 +98,12 @@ export default function ProfileScreen() {
             <Text style={styles.rankScore}>🏅 {rank.score} pts</Text>
             <Text style={styles.rankHint}>Earn 1 point per KM when an organizer confirms your presence at a run.</Text>
           </View>
-          {(displayProfile?.region || displayProfile?.city || displayProfile?.locality) && (
+          {Boolean(displayProfile?.region || displayProfile?.city || displayProfile?.locality) ? (
             <Text style={styles.city}>
-              📍 {[displayProfile.region, displayProfile.city, displayProfile.locality].filter(Boolean).join(', ')}
+              📍 {[displayProfile?.region, displayProfile?.city, displayProfile?.locality].filter(Boolean).join(', ')}
             </Text>
-          )}
-          {displayProfile?.bio && <Text style={styles.bio}>{displayProfile.bio}</Text>}
+          ) : null}
+          {Boolean(displayProfile?.bio) ? <Text style={styles.bio}>{displayProfile?.bio}</Text> : null}
 
           {/* ── Social counts ── */}
           <View style={styles.socialRow}>
@@ -213,7 +215,7 @@ export default function ProfileScreen() {
                     activeOpacity={0.7}
                   >
                     {item.avatar ? (
-                      <Image source={{ uri: item.avatar }} style={styles.userAvatarImg} />
+                      <Image source={{ uri: resolveMediaUrl(item.avatar) }} style={styles.userAvatarImg} />
                     ) : (
                       <View style={styles.userAvatarPlaceholder}>
                         <Text style={styles.userAvatarLetter}>{item.name?.charAt(0) || 'U'}</Text>

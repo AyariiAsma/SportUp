@@ -39,6 +39,7 @@ export const resetPasswordSchema = z.object({
 // ─── User Schemas ────────────────────────────────────────
 
 export const updateProfileSchema = z.object({
+  avatar: z.string().nullable().optional(),
   name: z.string().min(2).max(100).optional(),
   username: z
     .string()
