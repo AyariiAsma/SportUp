@@ -16,6 +16,7 @@ async function buildUserProfile(userId: string, currentUserId?: string | null) {
       bio: true,
       city: true,
       region: true,
+      locality: true,
       country: true,
       lat: true,
       lng: true,
