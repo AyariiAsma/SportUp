@@ -5,6 +5,9 @@ import tunisiaData from '../../utils/data/tunisia.json';
 import { Select } from './Select';
 
 interface AddressSelectorProps {
+  region?: string;
+  city?: string;
+  locality?: string;
   initialRegion?: string;
   initialCity?: string;
   initialLocality?: string;
@@ -12,14 +15,30 @@ interface AddressSelectorProps {
 }
 
 export function AddressSelector({
+  region: propRegion,
+  city: propCity,
+  locality: propLocality,
   initialRegion = '',
   initialCity = '',
   initialLocality = '',
   onChange,
 }: AddressSelectorProps) {
-  const [region, setRegion] = useState(initialRegion);
-  const [city, setCity] = useState(initialCity);
-  const [locality, setLocality] = useState(initialLocality);
+  const [region, setRegion] = useState(propRegion ?? initialRegion);
+  const [city, setCity] = useState(propCity ?? initialCity);
+  const [locality, setLocality] = useState(propLocality ?? initialLocality);
+
+  // Sync if prop values change from external source (like initial form load)
+  useEffect(() => {
+    if (propRegion !== undefined && propRegion !== region) setRegion(propRegion);
+  }, [propRegion]);
+
+  useEffect(() => {
+    if (propCity !== undefined && propCity !== city) setCity(propCity);
+  }, [propCity]);
+
+  useEffect(() => {
+    if (propLocality !== undefined && propLocality !== locality) setLocality(propLocality);
+  }, [propLocality]);
 
   const governorates = tunisiaData.governorates;
   
@@ -29,23 +48,22 @@ export function AddressSelector({
   const selectedVille = villes.find((v) => v.name === city);
   const localities = selectedVille ? selectedVille.localities : [];
 
-  useEffect(() => {
-    onChange(region, city, locality);
-  }, [region, city, locality]);
-
   const handleRegionSelect = (govName: string) => {
     setRegion(govName);
     setCity('');
     setLocality('');
+    onChange(govName, '', '');
   };
 
   const handleCitySelect = (cityName: string) => {
     setCity(cityName);
     setLocality('');
+    onChange(region, cityName, '');
   };
 
   const handleLocalitySelect = (locName: string) => {
     setLocality(locName);
+    onChange(region, city, locName);
   };
 
   const govOptions = governorates.map((g) => ({ label: g.name, value: g.name }));

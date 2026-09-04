@@ -114,13 +114,13 @@ export default function EditProfileScreen() {
             />
 
             <AddressSelector
-              initialRegion={user?.region || ''}
-              initialCity={user?.city || ''}
-              initialLocality={user?.locality || ''}
+              region={watch('region')}
+              city={watch('city')}
+              locality={watch('locality')}
               onChange={(region, city, locality) => {
-                setValue('region', region, { shouldValidate: true });
-                setValue('city', city, { shouldValidate: true });
-                setValue('locality', locality, { shouldValidate: true });
+                setValue('region', region, { shouldValidate: true, shouldDirty: true });
+                setValue('city', city, { shouldValidate: true, shouldDirty: true });
+                setValue('locality', locality, { shouldValidate: true, shouldDirty: true });
               }}
             />
 
