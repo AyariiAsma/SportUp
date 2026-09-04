@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { theme } from '../../theme';
 import tunisiaData from '../../utils/data/tunisia.json';
@@ -15,31 +15,11 @@ interface AddressSelectorProps {
 }
 
 export function AddressSelector({
-  region: propRegion,
-  city: propCity,
-  locality: propLocality,
-  initialRegion = '',
-  initialCity = '',
-  initialLocality = '',
+  region = '',
+  city = '',
+  locality = '',
   onChange,
 }: AddressSelectorProps) {
-  const [region, setRegion] = useState(propRegion ?? initialRegion);
-  const [city, setCity] = useState(propCity ?? initialCity);
-  const [locality, setLocality] = useState(propLocality ?? initialLocality);
-
-  // Sync if prop values change from external source (like initial form load)
-  useEffect(() => {
-    if (propRegion !== undefined && propRegion !== region) setRegion(propRegion);
-  }, [propRegion]);
-
-  useEffect(() => {
-    if (propCity !== undefined && propCity !== city) setCity(propCity);
-  }, [propCity]);
-
-  useEffect(() => {
-    if (propLocality !== undefined && propLocality !== locality) setLocality(propLocality);
-  }, [propLocality]);
-
   const governorates = tunisiaData.governorates;
   
   const selectedGov = governorates.find((g) => g.name === region);
@@ -49,20 +29,14 @@ export function AddressSelector({
   const localities = selectedVille ? selectedVille.localities : [];
 
   const handleRegionSelect = (govName: string) => {
-    setRegion(govName);
-    setCity('');
-    setLocality('');
     onChange(govName, '', '');
   };
 
   const handleCitySelect = (cityName: string) => {
-    setCity(cityName);
-    setLocality('');
     onChange(region, cityName, '');
   };
 
   const handleLocalitySelect = (locName: string) => {
-    setLocality(locName);
     onChange(region, city, locName);
   };
 

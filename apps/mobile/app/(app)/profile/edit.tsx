@@ -118,9 +118,9 @@ export default function EditProfileScreen() {
               city={watch('city')}
               locality={watch('locality')}
               onChange={(region, city, locality) => {
-                setValue('region', region, { shouldValidate: true, shouldDirty: true });
-                setValue('city', city, { shouldValidate: true, shouldDirty: true });
-                setValue('locality', locality, { shouldValidate: true, shouldDirty: true });
+                setValue('region', region, { shouldValidate: true });
+                setValue('city', city, { shouldValidate: true });
+                setValue('locality', locality, { shouldValidate: true });
               }}
             />
 
