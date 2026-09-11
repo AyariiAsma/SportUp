@@ -10,6 +10,13 @@ import type {
 import type { AttendanceStatus } from '@sportup/shared';
 
 export const eventService = {
+  async getEvents(params?: { lat?: number; lng?: number; region?: string; city?: string; sportId?: string }): Promise<SportEvent[]> {
+    const response = await api.get<{ success: boolean; data: SportEvent[] }>('/events', {
+      params,
+    });
+    return response.data.data;
+  },
+
   async getNearbyEvents(lat: number, lng: number, radius = 50): Promise<SportEvent[]> {
     const response = await api.get<{ success: boolean; data: SportEvent[] }>('/events', {
       params: { lat, lng, radiusKm: radius, sortBy: 'distance' },

@@ -74,8 +74,22 @@ export async function eventRoutes(app: FastifyInstance) {
 
     const where: any = {};
     if (filters.sportId) where.sportId = filters.sportId;
-    if (filters.city) where.city = { contains: filters.city, mode: 'insensitive' };
-    if (filters.region) where.region = { contains: filters.region, mode: 'insensitive' };
+    if (filters.city || filters.region) {
+      const locConditions = [];
+      if (filters.city) {
+        locConditions.push(
+          { city: { contains: filters.city, mode: 'insensitive' } },
+          { region: { contains: filters.city, mode: 'insensitive' } }
+        );
+      }
+      if (filters.region) {
+        locConditions.push(
+          { region: { contains: filters.region, mode: 'insensitive' } },
+          { city: { contains: filters.region, mode: 'insensitive' } }
+        );
+      }
+      where.OR = locConditions;
+    }
     if (filters.difficulty) where.difficulty = filters.difficulty;
 
     if (filters.startDate || filters.endDate) {

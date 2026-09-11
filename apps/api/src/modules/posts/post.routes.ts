@@ -193,6 +193,16 @@ export async function postRoutes(app: FastifyInstance) {
       },
     });
 
+    if (body.mediaIds !== undefined) {
+      await prisma.media.deleteMany({ where: { postId: id } });
+      if (body.mediaIds.length > 0) {
+        await prisma.media.updateMany({
+          where: { id: { in: body.mediaIds } },
+          data: { postId: id },
+        });
+      }
+    }
+
     return reply.send({ success: true, data: updated });
   });
 

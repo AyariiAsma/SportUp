@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, SafeAreaView, FlatList, ActivityIndicator, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, ScrollView, Platform, TextInput as RNTextInput } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { theme } from '../../../src/theme';
@@ -6,16 +7,34 @@ import { useLocationStore } from '../../../src/stores/location.store';
 import { eventService } from '../../../src/services/event.service';
 import { sportService } from '../../../src/services/sport.service';
 import { EventCard } from '../../../src/components/events/EventCard';
-import { TextInput } from '../../../src/components/common/TextInput';
+
+import { useAuthStore } from '../../../src/stores/auth.store';
 import { useState } from 'react';
 import MapView, { Marker, Callout } from '../../../src/components/common/MapView';
+import { Ionicons } from '@expo/vector-icons';
+
+const SPORT_EMOJIS: Record<string, string> = {
+  Running: '🏃',
+  Walking: '🚶',
+  Cycling: '🚴',
+  Hiking: '🥾',
+  Football: '⚽',
+  Basketball: '🏀',
+  Fitness: '💪',
+  Yoga: '🧘',
+  Swimming: '🏊',
+  Tennis: '🎾',
+};
 
 export default function ExploreScreen() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const { latitude, longitude, city } = useLocationStore();
   const [search, setSearch] = useState('');
   const [selectedSportId, setSelectedSportId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+
+  const displayLocation = city || user?.region || user?.city || user?.locality || 'Near you';
 
   const { data: sports = [] } = useQuery({
     queryKey: ['sports'],
@@ -23,14 +42,22 @@ export default function ExploreScreen() {
   });
 
   const { data: nearbyEvents = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['events', 'nearby', latitude, longitude],
-    queryFn: () => eventService.getNearbyEvents(latitude || 0, longitude || 0),
-    enabled: !!latitude && !!longitude,
+    queryKey: ['events', 'explore', latitude, longitude, user?.region, user?.city],
+    queryFn: async () => {
+      if (latitude && longitude) {
+        return eventService.getNearbyEvents(latitude, longitude);
+      }
+      const profileGovernorate = user?.region || user?.city;
+      if (profileGovernorate) {
+        const regionalEvents = await eventService.getEvents({ region: profileGovernorate });
+        if (regionalEvents.length > 0) return regionalEvents;
+      }
+      return eventService.getEvents();
+    },
   });
 
-  // Filter events locally by search query and selected sport
   const filteredEvents = nearbyEvents.filter(event => {
-    const matchesSearch = event.title.toLowerCase().includes(search.toLowerCase()) || 
+    const matchesSearch = event.title.toLowerCase().includes(search.toLowerCase()) ||
                           event.description.toLowerCase().includes(search.toLowerCase());
     const matchesSport = selectedSportId ? event.sportId === selectedSportId : true;
     return matchesSearch && matchesSport;
@@ -38,41 +65,67 @@ export default function ExploreScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* ── Header ── */}
       <View style={styles.header}>
         <View>
           <Text style={styles.greeting}>Explore Activities</Text>
-          <Text style={styles.location}>📍 {city || 'Near you'}</Text>
+          <View style={styles.locationRow}>
+            <Ionicons name="location" size={13} color={theme.colors.primary} />
+            <Text style={styles.location}>{displayLocation}</Text>
+          </View>
         </View>
-        <View style={styles.headerActions}>
-          <TouchableOpacity 
-            style={styles.toggleBtn}
-            onPress={() => setViewMode(prev => prev === 'list' ? 'map' : 'list')}
+        {/* Map / List segmented control */}
+        <View style={styles.segmentedControl}>
+          <TouchableOpacity
+            style={[styles.segmentBtn, viewMode === 'list' && styles.segmentBtnActive]}
+            onPress={() => setViewMode('list')}
           >
-            <Text style={styles.toggleBtnText}>{viewMode === 'list' ? '🗺️ Map' : '📋 List'}</Text>
+            <Ionicons
+              name="list"
+              size={16}
+              color={viewMode === 'list' ? '#fff' : theme.colors.textMuted}
+            />
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.addBtn}
-            onPress={() => router.push('/(app)/event/create')}
+          <TouchableOpacity
+            style={[styles.segmentBtn, viewMode === 'map' && styles.segmentBtnActive]}
+            onPress={() => setViewMode('map')}
           >
-            <Text style={styles.addBtnText}>+ Create</Text>
+            <Ionicons
+              name="map"
+              size={16}
+              color={viewMode === 'map' ? '#fff' : theme.colors.textMuted}
+            />
           </TouchableOpacity>
         </View>
       </View>
 
+      {/* ── Search + Filters ── */}
       <View style={styles.searchSection}>
-        <TextInput
-          placeholder="Search activities..."
-          value={search}
-          onChangeText={setSearch}
-          style={styles.searchInput}
-        />
-        
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={18} color={theme.colors.textMuted} />
+          <RNTextInput
+            placeholder="Search activities..."
+            placeholderTextColor={theme.colors.textMuted}
+            value={search}
+            onChangeText={setSearch}
+            style={styles.searchInput}
+            returnKeyType="search"
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch('')} style={styles.clearBtn}>
+              <Ionicons name="close-circle" size={18} color={theme.colors.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll}>
           <TouchableOpacity
             style={[styles.filterChip, !selectedSportId && styles.filterChipActive]}
             onPress={() => setSelectedSportId(null)}
           >
-            <Text style={[styles.filterChipText, !selectedSportId && styles.filterChipTextActive]}>All Sports</Text>
+            <Text style={[styles.filterChipText, !selectedSportId && styles.filterChipTextActive]}>
+              🏅 All
+            </Text>
           </TouchableOpacity>
           {sports.map(sport => (
             <TouchableOpacity
@@ -81,12 +134,21 @@ export default function ExploreScreen() {
               onPress={() => setSelectedSportId(sport.id)}
             >
               <Text style={[styles.filterChipText, selectedSportId === sport.id && styles.filterChipTextActive]}>
-                {sport.name}
+                {SPORT_EMOJIS[sport.name] || '⚡'} {sport.name}
               </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
+
+      {/* Result count label */}
+      {!isLoading && !error && viewMode === 'list' && (
+        <View style={styles.resultRow}>
+          <Text style={styles.resultLabel}>
+            {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''} found
+          </Text>
+        </View>
+      )}
 
       {isLoading ? (
         <View style={styles.center}>
@@ -94,6 +156,7 @@ export default function ExploreScreen() {
         </View>
       ) : error ? (
         <View style={styles.center}>
+          <Ionicons name="cloud-offline-outline" size={40} color={theme.colors.textMuted} />
           <Text style={styles.errorText}>Could not load events.</Text>
         </View>
       ) : viewMode === 'list' ? (
@@ -146,6 +209,15 @@ export default function ExploreScreen() {
           <Text style={{ color: theme.colors.textMuted }}>Map view is not supported on web.</Text>
         </View>
       )}
+
+      {/* Floating Action Button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push('/(app)/event/create')}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="add" size={28} color="#fff" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -167,43 +239,74 @@ const styles = StyleSheet.create({
     fontFamily: theme.typography.fontFamily.bold,
     color: theme.colors.text,
   },
-  location: {
-    fontSize: theme.typography.size.sm,
-    color: theme.colors.textMuted,
-    fontFamily: theme.typography.fontFamily.medium,
-    marginTop: theme.spacing.xs,
-  },
-  headerActions: {
+  locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: theme.spacing.sm,
+    gap: 4,
+    marginTop: theme.spacing.xs,
   },
-  toggleBtn: {
-    backgroundColor: theme.colors.surface,
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.border.radius.round,
-  },
-  toggleBtnText: {
-    color: theme.colors.text,
-    fontFamily: theme.typography.fontFamily.semiBold,
-  },
-  addBtn: {
-    backgroundColor: 'rgba(255, 107, 53, 0.1)',
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.border.radius.round,
-  },
-  addBtnText: {
+  location: {
+    fontSize: theme.typography.size.sm,
     color: theme.colors.primary,
-    fontFamily: theme.typography.fontFamily.bold,
+    fontFamily: theme.typography.fontFamily.medium,
+  },
+  fab: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: theme.colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  segmentedControl: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.border.radius.round,
+    padding: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  segmentBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: theme.border.radius.round,
+  },
+  segmentBtnActive: {
+    backgroundColor: theme.colors.primary,
   },
   searchSection: {
     paddingHorizontal: theme.spacing.xl,
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
+    gap: theme.spacing.sm,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.border.radius.lg,
+    paddingHorizontal: theme.spacing.md,
+    height: 48,
+    gap: theme.spacing.sm,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   searchInput: {
-    marginBottom: theme.spacing.sm,
+    flex: 1,
+    color: theme.colors.text,
+    fontFamily: theme.typography.fontFamily.regular,
+    fontSize: theme.typography.size.md,
+    paddingVertical: 0,
+  },
+  clearBtn: {
+    padding: 4,
   },
   filtersScroll: {
     flexDirection: 'row',
@@ -215,26 +318,40 @@ const styles = StyleSheet.create({
     borderRadius: theme.border.radius.round,
     marginRight: theme.spacing.sm,
     borderWidth: 1,
-    borderColor: 'transparent',
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   filterChipActive: {
     backgroundColor: theme.colors.primary,
+    borderColor: 'transparent',
   },
   filterChipText: {
     color: theme.colors.textMuted,
     fontFamily: theme.typography.fontFamily.medium,
+    fontSize: theme.typography.size.sm,
   },
   filterChipTextActive: {
-    color: theme.colors.text,
+    color: '#fff',
+  },
+  resultRow: {
+    paddingHorizontal: theme.spacing.xl,
+    marginBottom: theme.spacing.sm,
+  },
+  resultLabel: {
+    fontSize: theme.typography.size.xs,
+    color: theme.colors.textMuted,
+    fontFamily: theme.typography.fontFamily.medium,
+    letterSpacing: 0.3,
   },
   list: {
     padding: theme.spacing.md,
+    paddingBottom: 80,
     flexGrow: 1,
   },
   center: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: theme.spacing.sm,
   },
   errorText: {
     color: theme.colors.error,

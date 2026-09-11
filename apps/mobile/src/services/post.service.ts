@@ -78,8 +78,8 @@ export const postService = {
     return response.data.data;
   },
 
-  async updatePost(id: string, content: string): Promise<Post> {
-    const response = await api.put<ApiResponse<Post>>(`/posts/${id}`, { content });
+  async updatePost(id: string, content: string, mediaIds?: string[]): Promise<Post> {
+    const response = await api.put<ApiResponse<Post>>(`/posts/${id}`, { content, mediaIds });
     return response.data.data;
   },
 

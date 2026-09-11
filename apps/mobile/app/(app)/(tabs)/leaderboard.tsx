@@ -60,7 +60,6 @@ function PodiumCard({ entry, position }: { entry: LeaderboardEntry; position: 1 
             </Text>
           </View>
         )}
-        {entry.isOnline && <View style={styles.onlineDot} />}
       </View>
       <Text style={styles.podiumName} numberOfLines={1}>{entry.name}</Text>
       <Text style={[styles.podiumScore, { color: medal.color }]}>{entry.rankScore} pts</Text>
@@ -100,7 +99,6 @@ function RankRow({ entry, isMe }: { entry: LeaderboardEntry; isMe: boolean }) {
               <Text style={styles.rowAvatarLetter}>{entry.name.charAt(0).toUpperCase()}</Text>
             </View>
           )}
-          {entry.isOnline && <View style={styles.rowOnlineDot} />}
         </View>
 
         {/* Name + level */}
@@ -321,17 +319,6 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontFamily: theme.typography.fontFamily.bold,
   },
-  onlineDot: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: theme.colors.success,
-    borderWidth: 2,
-    borderColor: theme.colors.surface,
-  },
   podiumName: {
     fontSize: theme.typography.size.xs,
     fontFamily: theme.typography.fontFamily.semiBold,
@@ -408,17 +395,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: theme.typography.fontFamily.bold,
     color: theme.colors.primary,
-  },
-  rowOnlineDot: {
-    position: 'absolute',
-    bottom: 1,
-    right: 1,
-    width: 9,
-    height: 9,
-    borderRadius: 5,
-    backgroundColor: theme.colors.success,
-    borderWidth: 1.5,
-    borderColor: theme.colors.surface,
   },
   rowInfo: {
     flex: 1,
