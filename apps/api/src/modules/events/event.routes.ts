@@ -358,7 +358,6 @@ export async function eventRoutes(app: FastifyInstance) {
 
     // Enforce computed status business rules
     const computedStatus = computeEventStatus(event.startAt, event.endAt, event.durationMin);
-    if (computedStatus === 'STARTED') return reply.status(400).send({ success: false, message: 'This run has already started' });
     if (computedStatus === 'COMPLETED') return reply.status(400).send({ success: false, message: 'This run has already completed' });
     if (computedStatus === 'CANCELLED' || event.status === 'CANCELLED') return reply.status(400).send({ success: false, message: 'This run has been cancelled' });
 

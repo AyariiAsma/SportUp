@@ -42,16 +42,48 @@ export default function NotificationCenterScreen() {
 
   const markReadMutation = useMutation({
     mutationFn: (id: string) => notificationService.markAsRead(id),
-    onSuccess: () => {
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] });
+      const previous = queryClient.getQueryData<Notification[]>(['notifications']);
+      if (previous) {
+        queryClient.setQueryData<Notification[]>(
+          ['notifications'],
+          previous.map((n) => (n.id === id ? { ...n, read: true } : n))
+        );
+      }
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['notifications'], context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    }
+    },
   });
 
   const markAllReadMutation = useMutation({
     mutationFn: () => notificationService.markAllAsRead(),
-    onSuccess: () => {
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['notifications'] });
+      const previous = queryClient.getQueryData<Notification[]>(['notifications']);
+      if (previous) {
+        queryClient.setQueryData<Notification[]>(
+          ['notifications'],
+          previous.map((n) => ({ ...n, read: true }))
+        );
+      }
+      return { previous };
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['notifications'], context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
-    }
+    },
   });
 
   const unreadCount = notifications.filter(n => !n.read).length;

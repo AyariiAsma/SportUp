@@ -14,6 +14,7 @@ import { OnlineIndicator } from '../../../src/components/common/OnlineIndicator'
 import { resolveMediaUrl } from '../../../src/services/post.service';
 import { EventCard } from '../../../src/components/events/EventCard';
 import { motivationService } from '../../../src/services/motivation.service';
+import { notificationService } from '../../../src/services/notification.service';
 import { Ionicons } from '@expo/vector-icons';
 
 function getGreeting(): string {
@@ -54,6 +55,14 @@ export default function HomeScreen() {
     queryKey: ['users', 'runners'],
     queryFn: () => userSearchService.getOnlineUsers(),
   });
+
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => notificationService.getNotifications(),
+    refetchInterval: 15000,
+  });
+
+  const unreadNotifCount = notifications.filter((n) => !n.read).length;
 
   const handleRefresh = () => {
     refetchEvents();
@@ -97,6 +106,13 @@ export default function HomeScreen() {
               onPress={() => router.push('/(app)/notifications')}
             >
               <Ionicons name="notifications-outline" size={22} color={theme.colors.text} />
+              {unreadNotifCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>
+                    {unreadNotifCount > 99 ? '99+' : unreadNotifCount}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -336,6 +352,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
+    position: 'relative',
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: theme.colors.background,
+  },
+  notifBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontFamily: theme.typography.fontFamily.bold,
   },
   dateBadge: {
     flexDirection: 'row',

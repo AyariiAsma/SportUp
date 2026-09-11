@@ -20,9 +20,14 @@ export async function notificationRoutes(app: FastifyInstance) {
       prisma.notification.count({ where: { userId, isRead: false } }),
     ]);
 
+    const formattedNotifications = notifications.map((n) => ({
+      ...n,
+      read: n.isRead,
+    }));
+
     return reply.send({
       success: true,
-      data: notifications,
+      data: formattedNotifications,
       unreadCount,
       pagination: {
         page: parseInt(page),
@@ -35,7 +40,7 @@ export async function notificationRoutes(app: FastifyInstance) {
 
   // ─── Mark as Read ──────────────────────────────────────
 
-  app.patch('/:id/read', { preHandler: [app.authenticate] }, async (request, reply) => {
+  const markReadHandler = async (request: any, reply: any) => {
     const { id } = request.params as { id: string };
     const { id: userId } = request.user as { id: string };
 
@@ -45,11 +50,14 @@ export async function notificationRoutes(app: FastifyInstance) {
     });
 
     return reply.send({ success: true });
-  });
+  };
+
+  app.patch('/:id/read', { preHandler: [app.authenticate] }, markReadHandler);
+  app.post('/:id/read', { preHandler: [app.authenticate] }, markReadHandler);
 
   // ─── Mark All as Read ──────────────────────────────────
 
-  app.patch('/read-all', { preHandler: [app.authenticate] }, async (request, reply) => {
+  const markAllReadHandler = async (request: any, reply: any) => {
     const { id: userId } = request.user as { id: string };
 
     await prisma.notification.updateMany({
@@ -58,5 +66,8 @@ export async function notificationRoutes(app: FastifyInstance) {
     });
 
     return reply.send({ success: true });
-  });
+  };
+
+  app.patch('/read-all', { preHandler: [app.authenticate] }, markAllReadHandler);
+  app.post('/read-all', { preHandler: [app.authenticate] }, markAllReadHandler);
 }

@@ -46,12 +46,42 @@ export default function EventDetailScreen() {
 
   const joinMutation = useMutation({
     mutationFn: () => eventService.joinEvent(id as string),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['event', id] });
+      const previous = queryClient.getQueryData<any>(['event', id]);
+      if (previous) {
+        queryClient.setQueryData(['event', id], {
+          ...previous,
+          isJoined: true,
+          participantCount: (previous.participantCount || 0) + 1,
+          participants: [
+            ...(previous.participants || []),
+            {
+              id: 'temp-' + Date.now(),
+              userId: user?.id,
+              user: {
+                id: user?.id,
+                name: user?.name || 'You',
+                username: user?.username || 'you',
+                avatar: user?.avatar,
+                isOnline: true,
+              },
+            },
+          ],
+        });
+      }
+      return { previous };
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['event', id] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
       queryClient.invalidateQueries({ queryKey: ['my-events'] });
-      Alert.alert('🎉 Joined!', 'You\'re now registered for this run. See you there!');
+      Alert.alert('🎉 Joined!', "You're now registered for this run. See you there!");
     },
-    onError: (err: any) => {
+    onError: (err: any, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['event', id], context.previous);
+      }
       Alert.alert('Error', err.response?.data?.message || 'Could not join run');
     },
   });
