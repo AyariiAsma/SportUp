@@ -125,13 +125,13 @@ export default function HomeScreen() {
           <View style={styles.quickActions}>
             <TouchableOpacity
               style={styles.createRunBtn}
-              onPress={() => router.push('/(app)/event/create')}
+              onPress={() => router.push('/(app)/run/live')}
               activeOpacity={0.85}
             >
               <View style={styles.quickActionIcon}>
-                <Ionicons name="add" size={20} color="#fff" />
+                <Ionicons name="play" size={20} color="#fff" />
               </View>
-              <Text style={styles.createRunText}>Create Run</Text>
+              <Text style={styles.createRunText}>Start Free Run</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickBtn}
@@ -145,7 +145,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.quickBtn}
-              onPress={() => router.push('/(app)/(tabs)/events')}
+              onPress={() => router.push('/(app)/run/history')}
               activeOpacity={0.85}
             >
               <View style={[styles.quickActionIcon, styles.quickActionIconTertiary]}>

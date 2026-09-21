@@ -583,38 +583,50 @@ export default function EventDetailScreen() {
         {/* ── Bottom action bar ── */}
         <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, theme.spacing.md) }]}>
           {isOrganizer ? (
-            <View style={styles.actionRow}>
+            <View style={{ gap: 12, width: '100%' }}>
               <Button
-                title="Edit"
-                variant="outline"
-                onPress={() => router.push(`/(app)/event/edit?id=${event.id}`)}
-                style={styles.flexBtn}
+                title="Start Run Now"
+                onPress={() => router.push(`/(app)/run/live?eventId=${event.id}&eventTitle=${encodeURIComponent(event.title)}`)}
               />
-              <Button
-                title="Delete"
-                variant="outline"
-                onPress={() => {
-                  Alert.alert(
-                    'Delete Run',
-                    'Are you sure you want to delete this run? This action cannot be undone.',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      { text: 'Delete', style: 'destructive', onPress: () => deleteMutation.mutate() }
-                    ]
-                  );
-                }}
-                isLoading={deleteMutation.isPending}
-                style={[styles.flexBtn, { borderColor: theme.colors.error }]}
-              />
-              <Button title="Share" variant="outline" onPress={shareEvent} style={styles.flexBtn} />
+              <View style={styles.actionRow}>
+                <Button
+                  title="Edit"
+                  variant="outline"
+                  onPress={() => router.push(`/(app)/event/edit?id=${event.id}`)}
+                  style={styles.flexBtn}
+                />
+                <Button
+                  title="Delete"
+                  variant="outline"
+                  onPress={() => {
+                    Alert.alert(
+                      'Delete Run',
+                      'Are you sure you want to delete this run? This action cannot be undone.',
+                      [
+                        { text: 'Cancel', style: 'cancel' },
+                        { text: 'Delete', style: 'destructive', onPress: () => deleteMutation.mutate() }
+                      ]
+                    );
+                  }}
+                  isLoading={deleteMutation.isPending}
+                  style={[styles.flexBtn, { borderColor: theme.colors.error }]}
+                />
+                <Button title="Share" variant="outline" onPress={shareEvent} style={styles.flexBtn} />
+              </View>
             </View>
           ) : event.isJoined ? (
-            <View style={styles.actionRow}>
-              <View style={styles.joinedPill}>
-                <Text style={styles.joinedText}>✓ You're in!</Text>
+            <View style={{ gap: 12, width: '100%' }}>
+              <Button
+                title="Start Run Now"
+                onPress={() => router.push(`/(app)/run/live?eventId=${event.id}&eventTitle=${encodeURIComponent(event.title)}`)}
+              />
+              <View style={styles.actionRow}>
+                <View style={styles.joinedPill}>
+                  <Text style={styles.joinedText}>✓ You're in!</Text>
+                </View>
+                <Button title="Leave" variant="outline" onPress={() => leaveMutation.mutate()} isLoading={leaveMutation.isPending} style={styles.flexBtn} />
+                <Button title="Share" variant="outline" onPress={shareEvent} style={styles.flexBtn} />
               </View>
-              <Button title="Leave" variant="outline" onPress={() => leaveMutation.mutate()} isLoading={leaveMutation.isPending} style={styles.flexBtn} />
-              <Button title="Share" variant="outline" onPress={shareEvent} style={styles.flexBtn} />
             </View>
           ) : (
             <View style={styles.actionRow}>
