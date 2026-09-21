@@ -33,8 +33,9 @@ export default function ExploreScreen() {
   const [search, setSearch] = useState('');
   const [selectedSportId, setSelectedSportId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  const [isGlobal, setIsGlobal] = useState(false);
 
-  const displayLocation = city || user?.region || user?.city || user?.locality || 'Near you';
+  const displayLocation = isGlobal ? 'Global' : (city || user?.region || user?.city || user?.locality || 'Near you');
 
   const { data: sports = [] } = useQuery({
     queryKey: ['sports'],
@@ -42,8 +43,11 @@ export default function ExploreScreen() {
   });
 
   const { data: nearbyEvents = [], isLoading, error, refetch } = useQuery({
-    queryKey: ['events', 'explore', latitude, longitude, user?.region, user?.city],
+    queryKey: ['events', 'explore', latitude, longitude, user?.region, user?.city, isGlobal],
     queryFn: async () => {
+      if (isGlobal) {
+        return eventService.getEvents();
+      }
       if (latitude && longitude) {
         return eventService.getNearbyEvents(latitude, longitude);
       }
@@ -70,12 +74,22 @@ export default function ExploreScreen() {
         <View>
           <Text style={styles.greeting}>Explore Activities</Text>
           <View style={styles.locationRow}>
-            <Ionicons name="location" size={13} color={theme.colors.primary} />
+            <Ionicons name={isGlobal ? "globe" : "location"} size={13} color={theme.colors.primary} />
             <Text style={styles.location}>{displayLocation}</Text>
           </View>
         </View>
-        {/* Map / List segmented control */}
-        <View style={styles.segmentedControl}>
+        
+        <View style={styles.headerRight}>
+          <TouchableOpacity
+            style={styles.globalToggle}
+            onPress={() => setIsGlobal(!isGlobal)}
+          >
+            <Ionicons name={isGlobal ? "location" : "globe"} size={14} color={theme.colors.text} />
+            <Text style={styles.globalToggleText}>{isGlobal ? 'Nearby' : 'Global'}</Text>
+          </TouchableOpacity>
+
+          {/* Map / List segmented control */}
+          <View style={styles.segmentedControl}>
           <TouchableOpacity
             style={[styles.segmentBtn, viewMode === 'list' && styles.segmentBtnActive]}
             onPress={() => setViewMode('list')}
@@ -97,6 +111,7 @@ export default function ExploreScreen() {
             />
           </TouchableOpacity>
         </View>
+      </View>
       </View>
 
       {/* ── Search + Filters ── */}
@@ -233,6 +248,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: theme.spacing.xl,
     paddingBottom: theme.spacing.md,
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  globalToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.surfaceElevated,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: theme.border.radius.round,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  globalToggleText: {
+    color: theme.colors.text,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   greeting: {
     fontSize: theme.typography.size.xl,

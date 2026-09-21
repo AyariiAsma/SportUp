@@ -13,6 +13,7 @@ import { notificationRoutes } from './modules/notifications/notification.routes'
 import { reportRoutes } from './modules/reports/report.routes';
 import { rankRoutes } from './modules/rank/rank.routes';
 import { motivationRoutes } from './modules/motivation/motivation.routes';
+import { runRoutes } from './modules/runs/run.routes';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '0.0.0.0';
@@ -86,6 +87,7 @@ async function buildServer() {
   await app.register(reportRoutes, { prefix: '/api/v1/reports' });
   await app.register(rankRoutes, { prefix: '/api/v1/rank' });
   await app.register(motivationRoutes, { prefix: '/api/v1/motivation' });
+  await app.register(runRoutes, { prefix: '/api/v1/runs' });
 
   // ─── Global Error Handler ───────────────────────────
 

@@ -281,6 +281,24 @@ export async function eventRoutes(app: FastifyInstance) {
       data: { eventId: event.id, userId: organizerId, status: 'CONFIRMED' },
     });
 
+    // Notify all followers about the new event
+    const followers = await prisma.follow.findMany({
+      where: { followingId: organizerId },
+      select: { followerId: true },
+    });
+
+    if (followers.length > 0) {
+      await prisma.notification.createMany({
+        data: followers.map((f: any) => ({
+          userId: f.followerId,
+          type: 'NEW_FOLLOWER_EVENT',
+          title: 'New Run Created! 🏃‍♂️',
+          body: `${event.organizer.name} just created a new run: ${event.title}`,
+          data: { eventId: event.id },
+        })),
+      });
+    }
+
     return reply.status(201).send({ success: true, data: formatEvent(event, organizerId) });
   });
 

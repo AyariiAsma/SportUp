@@ -26,6 +26,8 @@ function getNotificationIcon(type: string): { icon: IoniconName; color: string }
       return { icon: 'chatbubble-outline', color: theme.colors.secondary };
     case 'NEW_FOLLOWER':
       return { icon: 'person-add-outline', color: theme.colors.tertiary };
+    case 'NEW_FOLLOWER_EVENT':
+      return { icon: 'footsteps-outline', color: theme.colors.primary };
     default:
       return { icon: 'notifications-outline', color: theme.colors.textMuted };
   }

@@ -57,6 +57,7 @@ model User {
 
   organizedEvents Event[]            @relation("Organizer")
   participations  EventParticipant[]
+  runSessions     RunSession[]
   posts           Post[]
   reels           Reel[]
   followers       Follow[]           @relation("Following")
@@ -117,6 +118,7 @@ model Event {
   comments     Comment[]
   likes        Like[]
   route        EventRoute?
+  runSessions  RunSession[]
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
@@ -169,6 +171,31 @@ model EventParticipant {
 
   @@unique([eventId, userId])
   @@map("event_participants")
+}
+
+// ─── RUN SESSIONS (LIVE TRACKING) ────────────────────────
+
+model RunSession {
+  id          String   @id @default(cuid())
+  title       String   @default("Free Run")
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId     String?  // Optional: associated with an event
+  event       Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  
+  startTime   DateTime @default(now())
+  endTime     DateTime?
+  distanceKm  Float    @default(0)
+  durationSec Int      @default(0)
+  avgPaceSec  Int      @default(0)
+  
+  route       Json     // Array of lat, lng coords
+  splits      Json     // Array of split objects { km, time, pace }
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("run_sessions")
 }
 
 enum ParticipantStatus {
@@ -404,6 +431,7 @@ enum NotificationType {
   COMMENT_LIKED
   COMMENT_MENTION
   NEW_FOLLOWER
+  NEW_FOLLOWER_EVENT
   NEW_NEARBY_EVENT
   ATTENDANCE_CONFIRMED
   RANK_UP
