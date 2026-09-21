@@ -36,7 +36,7 @@ export async function runRoutes(app: FastifyInstance) {
   });
 
   app.post('/sync', async (request, reply) => {
-    const userId = request.user.id;
+    const { id: userId } = request.user as { id: string };
     const body = syncRunSchema.parse(request.body);
 
     const runSession = await prisma.runSession.create({
@@ -68,7 +68,7 @@ export async function runRoutes(app: FastifyInstance) {
   });
 
   app.get('/my-runs', async (request, reply) => {
-    const userId = request.user.id;
+    const { id: userId } = request.user as { id: string };
 
     const runs = await prisma.runSession.findMany({
       where: { userId },
