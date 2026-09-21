@@ -9,7 +9,7 @@ services:
     name: sportup-api
     runtime: node
     plan: free
-    buildCommand: npm install && npm run build --workspace=apps/api
+    buildCommand: npm install --include=dev && npm run build --workspace=apps/api
     startCommand: cd apps/api && npx prisma migrate deploy && node dist/server.js
     healthCheckPath: /api/v1/health
     envVars:
