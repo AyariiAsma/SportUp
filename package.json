@@ -8,6 +8,7 @@
     "apps/*"
   ],
   "scripts": {
+    "postinstall": "npm run build --workspace=packages/shared",
     "api": "npm run dev --workspace=apps/api",
     "mobile": "npm run start --workspace=apps/mobile",
     "build": "npm run build --workspace=packages/shared && npm run build --workspace=apps/api",
@@ -15,7 +16,9 @@
     "shared:build": "npm run build --workspace=packages/shared",
     "db:migrate": "npm run db:migrate --workspace=apps/api",
     "db:seed": "npm run db:seed --workspace=apps/api",
-    "db:studio": "npm run db:studio --workspace=apps/api"
+    "db:studio": "npm run db:studio --workspace=apps/api",
+    "build:android": "cd apps/mobile && npx eas-cli build --platform android --profile preview",
+    "build:android:prod": "cd apps/mobile && npx eas-cli build --platform android --profile production"
   },
   "engines": {
     "node": ">=20.0.0"

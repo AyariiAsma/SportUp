@@ -15,6 +15,7 @@
       }
     },
     "android": {
+      "package": "com.souma1.sportup",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -26,6 +27,11 @@
         "googleMaps": {
           "apiKey": "YOUR_GOOGLE_MAPS_API_KEY_HERE"
         }
+      }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c128caf2-0374-4a04-9bda-d73be81083a2"
       }
     },
     "web": {

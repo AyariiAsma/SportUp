@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "(cd ../../packages/shared && tsc) && tsc",
+    "build": "(cd ../../packages/shared && tsc) && npx prisma generate && tsc",
     "start": "node dist/server.js",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
