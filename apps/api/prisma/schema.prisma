@@ -71,6 +71,18 @@ model User {
   receivedInvitations EventInvitation[] @relation("Invitee")
   sentInvitations EventInvitation[] @relation("Inviter")
   postTags        PostTag[]
+  createdSegments Segment[]
+  segmentEfforts  SegmentEffort[]
+  personalRecords PersonalRecord[]
+  athleteGoals    AthleteGoal[]
+  activityKudos   ActivityKudos[]
+  privacyZones    PrivacyZone[]
+  clubMemberships ClubMember[]
+  clubPosts       ClubPost[]
+  userChallenges  UserChallenge[]
+  userBadges      UserBadge[]
+  finisherResults EventFinisherResult[]
+  eventAnnouncements EventAnnouncement[]
 
   @@map("users")
 }
@@ -119,6 +131,15 @@ model Event {
   likes        Like[]
   route        EventRoute?
   runSessions  RunSession[]
+
+  recurrenceRule  String?
+  seriesId        String?
+  series          EventSeries?           @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  checkinToken    String?                @unique
+  waitlistSize    Int                    @default(0)
+  finisherResults EventFinisherResult[]
+  announcements   EventAnnouncement[]
+
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
 
@@ -176,27 +197,79 @@ model EventParticipant {
 // ─── RUN SESSIONS (LIVE TRACKING) ────────────────────────
 
 model RunSession {
-  id          String   @id @default(cuid())
-  title       String   @default("Free Run")
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  eventId     String?  // Optional: associated with an event
-  event       Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  id                String             @id @default(cuid())
+  clientSessionId   String?            @unique
+  title             String             @default("Free Run")
+  sportType         SportActivityType  @default(RUN)
+  visibility        ActivityVisibility @default(PUBLIC)
+  status            ActivityStatus     @default(COMPLETED)
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId           String?  // Optional: associated with an event
+  event             Event?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
   
-  startTime   DateTime @default(now())
-  endTime     DateTime?
-  distanceKm  Float    @default(0)
-  durationSec Int      @default(0)
-  avgPaceSec  Int      @default(0)
+  startTime         DateTime           @default(now())
+  endTime           DateTime?
+  distanceKm        Float              @default(0)
+  durationSec       Int                @default(0)
+  movingDurationSec Int                @default(0)
+  avgPaceSec        Int                @default(0)
+  avgSpeedKmh       Float              @default(0)
+  maxSpeedKmh       Float              @default(0)
+  elevationGainM    Float              @default(0)
+  elevationLossM    Float              @default(0)
+  calories          Int                @default(0)
+  avgCadence        Int?
+  avgHeartRate      Int?
+  maxHeartRate      Int?
+  isManual          Boolean            @default(false)
+  sourceDevice      String?            @default("SportUp Mobile")
+  notes             String?
   
-  route       Json     // Array of lat, lng coords
-  splits      Json     // Array of split objects { km, time, pace }
+  route             Json               // Array of location points
+  splits            Json               // Array of split objects
   
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  segmentEfforts    SegmentEffort[]
+  personalRecords   PersonalRecord[]
+  kudos             ActivityKudos[]
+  post              Post?
+  photos            String[]           @default([])
+  hideMap           Boolean            @default(false)
+  finisherResults   EventFinisherResult[]
   
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  
+  @@index([userId, startTime])
+  @@index([sportType])
+  @@index([visibility])
+  @@index([createdAt])
   @@map("run_sessions")
 }
+
+enum SportActivityType {
+  RUN
+  TRAIL_RUN
+  WALK
+  HIKE
+  RIDE
+  SWIM
+  YOGA
+  OTHER
+}
+
+enum ActivityVisibility {
+  PUBLIC
+  FOLLOWERS
+  ONLY_ME
+}
+
+enum ActivityStatus {
+  IN_PROGRESS
+  COMPLETED
+  DISCARDED
+}
+
 
 enum ParticipantStatus {
   CONFIRMED
@@ -263,6 +336,9 @@ model Post {
   likes     Like[]
   comments  Comment[]
   tags      PostTag[]
+  runSessionId String?      @unique
+  runSession   RunSession?  @relation(fields: [runSessionId], references: [id], onDelete: SetNull)
+  activityCardData Json?
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
@@ -435,6 +511,11 @@ enum NotificationType {
   NEW_NEARBY_EVENT
   ATTENDANCE_CONFIRMED
   RANK_UP
+  ACTIVITY_KUDOS
+  CHALLENGE_COMPLETED
+  BADGE_EARNED
+  EVENT_CHECKIN
+  EVENT_RESULTS_READY
 }
 
 // ─── FOOD RECOMMENDATIONS ────────────────────────────────
@@ -518,3 +599,315 @@ model RefreshToken {
   @@index([userId])
   @@map("refresh_tokens")
 }
+
+// ─── SEGMENTS & LEADERBOARDS ─────────────────────────────
+
+model Segment {
+  id             String            @id @default(cuid())
+  name           String
+  sportType      SportActivityType @default(RUN)
+  distanceM      Float
+  startLat       Float
+  startLng       Float
+  endLat         Float
+  endLng         Float
+  polyline       Json              // Array of route points
+  elevationGainM Float             @default(0)
+  creatorId      String
+  creator        User              @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  efforts        SegmentEffort[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([startLat, startLng])
+  @@index([sportType])
+  @@index([creatorId])
+  @@map("segments")
+}
+
+model SegmentEffort {
+  id             String      @id @default(cuid())
+  segmentId      String
+  segment        Segment     @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  activityId     String
+  activity       RunSession  @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  elapsedTimeSec Int
+  movingTimeSec  Int
+  avgSpeedKmh    Float
+  avgPaceSec     Int
+  startDate      DateTime
+  createdAt      DateTime    @default(now())
+
+  @@index([segmentId, elapsedTimeSec])
+  @@index([userId, segmentId])
+  @@index([activityId])
+  @@map("segment_efforts")
+}
+
+// ─── PERSONAL RECORDS ────────────────────────────────────
+
+model PersonalRecord {
+  id         String            @id @default(cuid())
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sportType  SportActivityType @default(RUN)
+  type       PRType
+  value      Float             // seconds for timed benchmarks, km for longest distance, sec/km for pace
+  activityId String
+  activity   RunSession        @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  achievedAt DateTime          @default(now())
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@unique([userId, sportType, type])
+  @@index([userId])
+  @@index([type])
+  @@map("personal_records")
+}
+
+enum PRType {
+  BEST_1K
+  BEST_5K
+  BEST_10K
+  HALF_MARATHON
+  MARATHON
+  LONGEST_DISTANCE
+  FASTEST_PACE
+}
+
+// ─── ATHLETE GOALS ───────────────────────────────────────
+
+model AthleteGoal {
+  id           String            @id @default(cuid())
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sportType    SportActivityType @default(RUN)
+  period       GoalPeriod        @default(WEEKLY)
+  targetType   GoalTargetType    @default(DISTANCE_KM)
+  targetValue  Float
+  currentValue Float             @default(0)
+  startDate    DateTime
+  endDate      DateTime
+  isCompleted  Boolean           @default(false)
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([userId, period, startDate])
+  @@map("athlete_goals")
+}
+
+enum GoalPeriod {
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+enum GoalTargetType {
+  DISTANCE_KM
+  DURATION_MIN
+  ACTIVITIES_COUNT
+}
+
+// ─── ACTIVITY KUDOS ──────────────────────────────────────
+
+model ActivityKudos {
+  id           String     @id @default(cuid())
+  runSessionId String
+  runSession   RunSession @relation(fields: [runSessionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([runSessionId, userId])
+  @@index([runSessionId])
+  @@index([userId])
+  @@map("activity_kudos")
+}
+
+// ─── PRIVACY ZONES ───────────────────────────────────────
+
+model PrivacyZone {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String   @default("Home")
+  lat          Float
+  lng          Float
+  radiusMeters Float    @default(500)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([userId])
+  @@map("privacy_zones")
+}
+
+// ─── CLUBS ───────────────────────────────────────────────
+
+model Club {
+  id          String            @id @default(cuid())
+  name        String
+  description String?
+  coverUrl    String?
+  avatarUrl   String?
+  city        String?
+  country     String?
+  sportType   SportActivityType @default(RUN)
+  isPrivate   Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  members    ClubMember[]
+  posts      ClubPost[]
+  challenges Challenge[]
+
+  @@index([sportType])
+  @@index([city])
+  @@map("clubs")
+}
+
+enum ClubRole {
+  MEMBER
+  ADMIN
+  OWNER
+}
+
+model ClubMember {
+  id       String   @id @default(cuid())
+  clubId   String
+  club     Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     ClubRole @default(MEMBER)
+  joinedAt DateTime @default(now())
+
+  @@unique([clubId, userId])
+  @@index([userId])
+  @@map("club_members")
+}
+
+model ClubPost {
+  id        String   @id @default(cuid())
+  clubId    String
+  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content   String
+  mediaUrls String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([clubId])
+  @@map("club_posts")
+}
+
+// ─── CHALLENGES & BADGES ─────────────────────────────────
+
+model Challenge {
+  id           String            @id @default(cuid())
+  title        String
+  description  String
+  badgeKey     String?
+  badgeIconUrl String?
+  type         ChallengeType     @default(MONTHLY_DISTANCE)
+  targetValue  Float
+  sportType    SportActivityType @default(RUN)
+  startDate    DateTime
+  endDate      DateTime
+  clubId       String?
+  club         Club?             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  participants UserChallenge[]
+  createdAt    DateTime          @default(now())
+
+  @@index([startDate, endDate])
+  @@map("challenges")
+}
+
+enum ChallengeType {
+  MONTHLY_DISTANCE
+  ELEVATION_GAIN
+  WEEKLY_STREAK
+  SINGLE_ACTIVITY_DISTANCE
+}
+
+model UserChallenge {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId String
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  progress    Float     @default(0)
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  joinedAt    DateTime  @default(now())
+
+  @@unique([userId, challengeId])
+  @@index([userId])
+  @@map("user_challenges")
+}
+
+model UserBadge {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeKey    String
+  title       String
+  description String
+  iconUrl     String?
+  awardedAt   DateTime @default(now())
+
+  @@unique([userId, badgeKey])
+  @@index([userId])
+  @@map("user_badges")
+}
+
+// ─── EVENT SERIES & FINISHER RESULTS ─────────────────────
+
+model EventSeries {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  frequency   String   @default("WEEKLY")
+  organizerId String
+  createdAt   DateTime @default(now())
+
+  events Event[]
+
+  @@map("event_series")
+}
+
+model EventFinisherResult {
+  id          String      @id @default(cuid())
+  eventId     String
+  event       Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityId  String?
+  activity    RunSession? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+  rank        Int
+  timeSec     Int
+  distanceKm  Float
+  paceSec     Int
+  completedAt DateTime    @default(now())
+
+  @@unique([eventId, userId])
+  @@index([eventId, rank])
+  @@map("event_finisher_results")
+}
+
+model EventAnnouncement {
+  id        String   @id @default(cuid())
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title     String
+  content   String
+  isPinned  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([eventId])
+  @@map("event_announcements")
+}
+

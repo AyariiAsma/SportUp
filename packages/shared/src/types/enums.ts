@@ -61,6 +61,24 @@ export enum NotificationType {
   NEW_NEARBY_EVENT = 'NEW_NEARBY_EVENT',
   ATTENDANCE_CONFIRMED = 'ATTENDANCE_CONFIRMED',
   RANK_UP = 'RANK_UP',
+  ACTIVITY_KUDOS = 'ACTIVITY_KUDOS',
+  CHALLENGE_COMPLETED = 'CHALLENGE_COMPLETED',
+  BADGE_EARNED = 'BADGE_EARNED',
+  EVENT_CHECKIN = 'EVENT_CHECKIN',
+  EVENT_RESULTS_READY = 'EVENT_RESULTS_READY',
+}
+
+export enum ClubRole {
+  MEMBER = 'MEMBER',
+  ADMIN = 'ADMIN',
+  OWNER = 'OWNER',
+}
+
+export enum ChallengeType {
+  MONTHLY_DISTANCE = 'MONTHLY_DISTANCE',
+  ELEVATION_GAIN = 'ELEVATION_GAIN',
+  WEEKLY_STREAK = 'WEEKLY_STREAK',
+  SINGLE_ACTIVITY_DISTANCE = 'SINGLE_ACTIVITY_DISTANCE',
 }
 
 export enum ReportTarget {
@@ -83,3 +101,54 @@ export enum FoodCategory {
   TIP = 'TIP',
   RESTAURANT = 'RESTAURANT',
 }
+
+// ─── Activity Tracking Enums ─────────────────────────────
+
+export enum SportActivityType {
+  RUN = 'RUN',
+  TRAIL_RUN = 'TRAIL_RUN',
+  WALK = 'WALK',
+  HIKE = 'HIKE',
+  RIDE = 'RIDE',
+  SWIM = 'SWIM',
+  YOGA = 'YOGA',
+  OTHER = 'OTHER',
+}
+
+export enum ActivityVisibility {
+  PUBLIC = 'PUBLIC',
+  FOLLOWERS = 'FOLLOWERS',
+  ONLY_ME = 'ONLY_ME',
+}
+
+export enum ActivityStatus {
+  IN_PROGRESS = 'IN_PROGRESS',
+  COMPLETED = 'COMPLETED',
+  DISCARDED = 'DISCARDED',
+}
+
+// ─── Analytics & Segments Enums ──────────────────────────
+
+export enum PRType {
+  BEST_1K = 'BEST_1K',
+  BEST_5K = 'BEST_5K',
+  BEST_10K = 'BEST_10K',
+  HALF_MARATHON = 'HALF_MARATHON',
+  MARATHON = 'MARATHON',
+  LONGEST_DISTANCE = 'LONGEST_DISTANCE',
+  FASTEST_PACE = 'FASTEST_PACE',
+}
+
+export enum GoalPeriod {
+  WEEKLY = 'WEEKLY',
+  MONTHLY = 'MONTHLY',
+  YEARLY = 'YEARLY',
+}
+
+export enum GoalTargetType {
+  DISTANCE_KM = 'DISTANCE_KM',
+  DURATION_MIN = 'DURATION_MIN',
+  ACTIVITIES_COUNT = 'ACTIVITIES_COUNT',
+}
+
+

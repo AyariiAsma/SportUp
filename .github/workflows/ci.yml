@@ -1,0 +1,54 @@
+name: SportUp CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test-and-typecheck:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: sportup
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Prisma migrations
+        working-directory: ./apps/api
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sportup?schema=public
+        run: npx prisma migrate deploy
+
+      - name: Typecheck all workspaces
+        run: npm run typecheck
+
+      - name: Run test suite
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/sportup?schema=public
+          JWT_SECRET: test_jwt_secret_key_at_least_32_characters_long
+        run: npm test

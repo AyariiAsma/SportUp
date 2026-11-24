@@ -82,6 +82,19 @@
 
 ## 🛠️ Tech Stack
 
+### 💻 Web Application (`apps/web`)
+
+| Technology | Purpose |
+|---|---|
+| **React 19** | Modern reactive component UI |
+| **Vite 5** | High-performance build tool & dev server |
+| **Tailwind CSS** | SportUp athletic dark/coral theme styling |
+| **Leaflet & OpenStreetMap** | Interactive dark maps for GPS tracking & event discovery |
+| **Web Speech API** | Hands-free audio voice coach announcing kilometer splits |
+| **HTML5 Geolocation + Simulator** | Real-time GPS tracker + desktop route simulator |
+| **Canvas Confetti** | Celebratory animations on workout completion & rank ups |
+| **Lucide Icons** | Clean vector iconography |
+
 ### 📱 Mobile App (`apps/mobile`)
 
 | Technology | Purpose |
@@ -141,6 +154,13 @@
 ```
 SportUp/
 ├── apps/
+│   ├── web/                      # React 19 + Vite + Tailwind web app
+│   │   ├── src/
+│   │   │   ├── components/       # Header, LiveTracker, Events, Feed, Leaderboard, Map
+│   │   │   ├── hooks/            # useLiveTracker (GPS, voice coach, route simulator)
+│   │   │   ├── data/             # Mock & seed athlete data
+│   │   │   └── utils/            # Geodesic math, pace, splits
+│   │
 │   ├── mobile/                   # React Native / Expo app
 │   │   ├── app/
 │   │   │   ├── (app)/

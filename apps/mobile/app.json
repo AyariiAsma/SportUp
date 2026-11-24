@@ -10,12 +10,25 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "location",
+          "fetch"
+        ]
+      },
       "config": {
         "googleMapsApiKey": "YOUR_GOOGLE_MAPS_API_KEY_HERE"
       }
     },
     "android": {
       "package": "com.souma1.sportup",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -50,7 +63,14 @@
         }
       ],
       "expo-secure-store",
-      "expo-location",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow SportUp to track your run route, pace, distance, and elevation.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ],
       [
         "react-native-maps",
         {

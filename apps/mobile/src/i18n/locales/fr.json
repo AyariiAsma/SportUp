@@ -1,0 +1,62 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "retry": "Réessayer",
+    "loading": "Chargement...",
+    "km": "km",
+    "min": "min",
+    "sec": "sec"
+  },
+  "nav": {
+    "home": "Accueil",
+    "explore": "Explorer",
+    "feed": "Fil d'actualité",
+    "runs": "Mes Sorties",
+    "ranking": "Classement",
+    "profile": "Profil"
+  },
+  "tracking": {
+    "start": "Démarrer la course",
+    "pause": "Pause",
+    "resume": "Reprendre",
+    "finish": "Terminer",
+    "discard": "Abandonner",
+    "distance": "Distance",
+    "time": "Temps",
+    "pace": "Allure",
+    "speed": "Vitesse",
+    "elevation": "Dénivelé",
+    "calories": "Calories",
+    "splits": "Tours",
+    "autoPaused": "Pause automatique",
+    "poorGps": "Signal GPS faible",
+    "saveTitle": "Enregistrer la course",
+    "activityTitle": "Titre de la sortie",
+    "visibility": "Visibilité",
+    "everyone": "Tout le monde",
+    "followers": "Abonnés uniquement",
+    "onlyMe": "Moi uniquement"
+  },
+  "social": {
+    "kudos": "Kudos",
+    "giveKudos": "Donner un kudos",
+    "comments": "Commentaires",
+    "share": "Partager la course",
+    "clubs": "Clubs de course",
+    "challenges": "Défis"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "preferences": "Préférences",
+    "units": "Unités",
+    "metric": "Métrique (km, m)",
+    "imperial": "Impérial (miles, ft)",
+    "language": "Langue",
+    "notifications": "Notifications",
+    "privacyZones": "Zones de confidentialité",
+    "account": "Compte",
+    "signOut": "Déconnexion",
+    "deleteAccount": "Supprimer le compte"
+  }
+}

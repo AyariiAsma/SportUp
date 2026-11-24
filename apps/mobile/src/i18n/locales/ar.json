@@ -1,0 +1,62 @@
+{
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "retry": "إعادة المحاولة",
+    "loading": "جارٍ التحميل...",
+    "km": "كم",
+    "min": "دقيقة",
+    "sec": "ثانية"
+  },
+  "nav": {
+    "home": "الرئيسية",
+    "explore": "استكشف",
+    "feed": "المنشورات",
+    "runs": "أنشطتي",
+    "ranking": "الترتيب",
+    "profile": "الملف الشخصي"
+  },
+  "tracking": {
+    "start": "ابدأ الجري",
+    "pause": "إيقاف مؤقت",
+    "resume": "استئناف",
+    "finish": "إنهاء",
+    "discard": "تراجع",
+    "distance": "المسافة",
+    "time": "الوقت",
+    "pace": "السرعة المتوسطة",
+    "speed": "السرعة",
+    "elevation": "الارتفاع",
+    "calories": "السعرات",
+    "splits": "المراحل",
+    "autoPaused": "إيقاف مؤقت تلقائي",
+    "poorGps": "إشارة GPS ضعيفة",
+    "saveTitle": "حفظ النشاط",
+    "activityTitle": "عنوان النشاط",
+    "visibility": "الخصوصية",
+    "everyone": "الجميع",
+    "followers": "المتابعون فقط",
+    "onlyMe": "أنا فقط"
+  },
+  "social": {
+    "kudos": "إعجاب رياضي",
+    "giveKudos": "أعجبني",
+    "comments": "تعليقات",
+    "share": "مشاركة الجري",
+    "clubs": "نوادي الجري",
+    "challenges": "التحديات"
+  },
+  "settings": {
+    "title": "الإعدادات",
+    "preferences": "التفضيلات",
+    "units": "الوحدات",
+    "metric": "متري (كم)",
+    "imperial": "إمبريالي (ميل)",
+    "language": "اللغة",
+    "notifications": "الإشعارات",
+    "privacyZones": "مناطق الخصوصية",
+    "account": "الحساب",
+    "signOut": "تسجيل الخروج",
+    "deleteAccount": "حذف الحساب"
+  }
+}

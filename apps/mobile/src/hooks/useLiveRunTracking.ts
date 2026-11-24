@@ -1,190 +1,127 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import * as Location from 'expo-location';
-import * as Speech from 'expo-speech';
-import { getDistance } from 'geolib';
-
-export type RunSplit = {
-  km: number;
-  timeSec: number;
-  paceSec: number;
-};
-
-export type LocationPoint = {
-  latitude: number;
-  longitude: number;
-  timestamp: number;
-};
+import { useTrackingStore } from '../stores/tracking.store';
+import {
+  requestAllLocationPermissions,
+  startBackgroundTracking,
+  stopBackgroundTracking,
+  registerLocationListener,
+  unregisterLocationListener,
+} from '../services/backgroundLocation';
+import { Platform } from 'react-native';
 
 export function useLiveRunTracking() {
-  const [isTracking, setIsTracking] = useState(false);
-  const [distanceKm, setDistanceKm] = useState(0);
-  const [durationSec, setDurationSec] = useState(0);
-  const [currentPaceSec, setCurrentPaceSec] = useState(0);
-  const [avgPaceSec, setAvgPaceSec] = useState(0);
-  const [route, setRoute] = useState<LocationPoint[]>([]);
-  const [splits, setSplits] = useState<RunSplit[]>([]);
+  const store = useTrackingStore();
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const foregroundSubRef = useRef<Location.LocationSubscription | null>(null);
 
-  const locationSub = useRef<Location.LocationSubscription | null>(null);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  
-  // Refs to hold latest values for callbacks
-  const stateRef = useRef({
-    distanceKm: 0,
-    durationSec: 0,
-    splits: [] as RunSplit[],
-    route: [] as LocationPoint[],
-  });
-
+  // Check for crashed/uncompleted session on mount
   useEffect(() => {
-    stateRef.current = { distanceKm, durationSec, splits, route };
-  }, [distanceKm, durationSec, splits, route]);
+    store.checkForCrashedSession();
+  }, []);
 
-  const startTracking = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      console.warn('Location permission denied');
-      return;
+  // Manage 1-second interval timer based on tracking status
+  useEffect(() => {
+    if (store.trackingStatus === 'TRACKING' || store.trackingStatus === 'AUTO_PAUSED') {
+      if (!timerRef.current) {
+        timerRef.current = setInterval(() => {
+          store.tickTimer();
+        }, 1000);
+      }
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
     }
 
-    // Reset stats
-    setDistanceKm(0);
-    setDurationSec(0);
-    setCurrentPaceSec(0);
-    setAvgPaceSec(0);
-    setRoute([]);
-    setSplits([]);
-    setIsTracking(true);
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+  }, [store.trackingStatus]);
 
-    // Start timer
-    timerRef.current = setInterval(() => {
-      setDurationSec((prev) => prev + 1);
-    }, 1000);
+  // Start tracking with full background + foreground location
+  const start = async (eventId?: string, eventTitle?: string) => {
+    const granted = await requestAllLocationPermissions();
+    if (!granted) {
+      console.warn('Location permission was not granted');
+      return false;
+    }
 
-    // Start GPS watch
-    locationSub.current = await Location.watchPositionAsync(
+    store.startTracking(eventId, eventTitle);
+
+    // Register callback for location updates
+    registerLocationListener((loc) => {
+      store.processLocationPoint(loc);
+    });
+
+    // Start background tracking if native
+    if (Platform.OS !== 'web') {
+      await startBackgroundTracking();
+    }
+
+    // Also run foreground watch for high-frequency updates while app is active
+    foregroundSubRef.current = await Location.watchPositionAsync(
       {
-        accuracy: Location.Accuracy.High,
-        timeInterval: 2000,
-        distanceInterval: 5,
+        accuracy: Location.Accuracy.BestForNavigation,
+        timeInterval: 1500,
+        distanceInterval: 3,
       },
       (location) => {
-        handleNewLocation(location);
+        store.processLocationPoint(location);
       }
     );
-    
-    Speech.speak('Run started. Good luck!');
+
+    return true;
   };
 
-  const handleNewLocation = (location: Location.LocationObject) => {
-    const newPoint = {
-      latitude: location.coords.latitude,
-      longitude: location.coords.longitude,
-      timestamp: location.timestamp,
-    };
-
-    setRoute((prevRoute) => {
-      if (prevRoute.length === 0) return [newPoint];
-
-      const lastPoint = prevRoute[prevRoute.length - 1];
-      
-      // Calculate distance between last point and new point in meters
-      const deltaMeters = getDistance(
-        { latitude: lastPoint.latitude, longitude: lastPoint.longitude },
-        { latitude: newPoint.latitude, longitude: newPoint.longitude }
-      );
-
-      if (deltaMeters < 2) return prevRoute; // ignore tiny GPS jitters
-
-      const deltaKm = deltaMeters / 1000;
-      const newTotalDistance = stateRef.current.distanceKm + deltaKm;
-      
-      setDistanceKm(newTotalDistance);
-
-      // Average Pace (sec/km)
-      const currentDuration = stateRef.current.durationSec;
-      if (newTotalDistance > 0.05) { // after 50 meters
-        setAvgPaceSec(currentDuration / newTotalDistance);
-      }
-
-      // Current Pace: time taken for this segment
-      const timeDeltaSec = (newPoint.timestamp - lastPoint.timestamp) / 1000;
-      if (deltaKm > 0) {
-        const paceForSegment = timeDeltaSec / deltaKm;
-        // Smooth it slightly
-        setCurrentPaceSec((prev) => (prev === 0 ? paceForSegment : (prev + paceForSegment) / 2));
-      }
-
-      // Splits Logic
-      const completedKms = Math.floor(newTotalDistance);
-      const previousSplitsCount = stateRef.current.splits.length;
-
-      if (completedKms > previousSplitsCount) {
-        // We just crossed a KM boundary!
-        const kmSplit = completedKms;
-        // Time for this specific km: total time - time of previous split
-        const timeOfPreviousSplits = stateRef.current.splits.reduce((acc, s) => acc + s.timeSec, 0);
-        const timeForThisKm = currentDuration - timeOfPreviousSplits;
-
-        const newSplit: RunSplit = {
-          km: kmSplit,
-          timeSec: timeForThisKm,
-          paceSec: timeForThisKm,
-        };
-
-        setSplits((prev) => [...prev, newSplit]);
-
-        // Audio Feedback
-        const mins = Math.floor(timeForThisKm / 60);
-        const secs = Math.floor(timeForThisKm % 60);
-        Speech.speak(`Kilometer ${kmSplit} completed. Pace: ${mins} minutes ${secs} seconds.`);
-      }
-
-      return [...prevRoute, newPoint];
-    });
+  const pause = () => {
+    store.pauseTracking();
   };
 
-  const pauseTracking = () => {
-    setIsTracking(false);
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (locationSub.current) locationSub.current.remove();
-    Speech.speak('Run paused.');
+  const resume = async () => {
+    store.resumeTracking();
+    if (Platform.OS !== 'web') {
+      await startBackgroundTracking();
+    }
   };
 
-  const resumeTracking = async () => {
-    setIsTracking(true);
-    timerRef.current = setInterval(() => {
-      setDurationSec((prev) => prev + 1);
-    }, 1000);
-
-    locationSub.current = await Location.watchPositionAsync(
-      {
-        accuracy: Location.Accuracy.High,
-        timeInterval: 2000,
-        distanceInterval: 5,
-      },
-      (location) => handleNewLocation(location)
-    );
-    Speech.speak('Run resumed.');
+  const stop = async () => {
+    store.stopTracking();
+    unregisterLocationListener();
+    if (foregroundSubRef.current) {
+      foregroundSubRef.current.remove();
+      foregroundSubRef.current = null;
+    }
+    if (Platform.OS !== 'web') {
+      await stopBackgroundTracking();
+    }
   };
 
-  const stopTracking = () => {
-    setIsTracking(false);
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (locationSub.current) locationSub.current.remove();
-    Speech.speak('Run finished.');
+  const discard = async () => {
+    store.discardTracking();
+    unregisterLocationListener();
+    if (foregroundSubRef.current) {
+      foregroundSubRef.current.remove();
+      foregroundSubRef.current = null;
+    }
+    if (Platform.OS !== 'web') {
+      await stopBackgroundTracking();
+    }
   };
 
   return {
-    isTracking,
-    distanceKm,
-    durationSec,
-    currentPaceSec,
-    avgPaceSec,
-    splits,
-    route,
-    startTracking,
-    pauseTracking,
-    resumeTracking,
-    stopTracking,
+    ...store,
+    isTracking: store.trackingStatus === 'TRACKING' || store.trackingStatus === 'AUTO_PAUSED',
+    isPaused: store.trackingStatus === 'PAUSED',
+    isAutoPaused: store.trackingStatus === 'AUTO_PAUSED',
+    startTracking: start,
+    pauseTracking: pause,
+    resumeTracking: resume,
+    stopTracking: stop,
+    discardTracking: discard,
   };
 }

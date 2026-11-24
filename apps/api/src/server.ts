@@ -14,11 +14,18 @@ import { reportRoutes } from './modules/reports/report.routes';
 import { rankRoutes } from './modules/rank/rank.routes';
 import { motivationRoutes } from './modules/motivation/motivation.routes';
 import { runRoutes } from './modules/runs/run.routes';
+import { segmentRoutes } from './modules/segments/segment.routes';
+import { analyticsRoutes } from './modules/analytics/analytics.routes';
+import { clubRoutes } from './modules/clubs/club.routes';
+import { challengeRoutes } from './modules/challenges/challenge.routes';
+import { privacyRoutes } from './modules/privacy/privacy.routes';
+import { kudosRoutes } from './modules/kudos/kudos.routes';
+import { eventExtRoutes } from './modules/events/eventExt.routes';
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const HOST = process.env.HOST || '0.0.0.0';
 
-async function buildServer() {
+export async function buildServer() {
   const app = Fastify({
     logger: {
       level: process.env.NODE_ENV === 'development' ? 'info' : 'warn',
@@ -88,6 +95,13 @@ async function buildServer() {
   await app.register(rankRoutes, { prefix: '/api/v1/rank' });
   await app.register(motivationRoutes, { prefix: '/api/v1/motivation' });
   await app.register(runRoutes, { prefix: '/api/v1/runs' });
+  await app.register(kudosRoutes, { prefix: '/api/v1/runs' });
+  await app.register(segmentRoutes, { prefix: '/api/v1/segments' });
+  await app.register(analyticsRoutes, { prefix: '/api/v1/analytics' });
+  await app.register(clubRoutes, { prefix: '/api/v1/clubs' });
+  await app.register(challengeRoutes, { prefix: '/api/v1/challenges' });
+  await app.register(privacyRoutes, { prefix: '/api/v1/privacy' });
+  await app.register(eventExtRoutes, { prefix: '/api/v1/events' });
 
   // ─── Global Error Handler ───────────────────────────
 
@@ -136,4 +150,8 @@ async function start() {
   }
 }
 
-start();
+const isDirectRun = Boolean(process.argv[1]?.endsWith('server.ts') || process.argv[1]?.endsWith('server.js'));
+if (process.env.NODE_ENV !== 'test' && isDirectRun) {
+  start();
+}
+
