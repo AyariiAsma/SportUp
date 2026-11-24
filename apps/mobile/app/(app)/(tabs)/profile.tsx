@@ -82,13 +82,21 @@ export default function ProfileScreen() {
       >
         <View style={styles.header}>
           <Text style={styles.title}>Profile</Text>
-          <TouchableOpacity
-            style={styles.editBtnContainer}
-            onPress={() => router.push('/(app)/profile/edit')}
-          >
-            <Ionicons name="pencil-outline" size={14} color={theme.colors.primary} />
-            <Text style={styles.editBtn}>Edit</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity
+              style={styles.editBtnContainer}
+              onPress={() => router.push('/(app)/profile/edit')}
+            >
+              <Ionicons name="pencil-outline" size={14} color={theme.colors.primary} />
+              <Text style={styles.editBtn}>Edit</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.editBtnContainer, { paddingHorizontal: 10 }]}
+              onPress={() => router.push('/(app)/settings')}
+            >
+              <Ionicons name="settings-outline" size={16} color={theme.colors.textMuted} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ── Profile Card ── */}
@@ -188,6 +196,90 @@ export default function ProfileScreen() {
 
         {/* ── Actions ── */}
         <View style={styles.actions}>
+          <TouchableOpacity
+            style={styles.actionRowBtn}
+            onPress={() => router.push('/(app)/(tabs)/analytics')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.actionRowLeft}>
+              <View style={[styles.actionIconWrap, { backgroundColor: 'rgba(255,107,53,0.15)' }]}>
+                <Ionicons name="stats-chart-outline" size={20} color={theme.colors.primary} />
+              </View>
+              <Text style={styles.actionRowText}>Performance Analytics</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionRowBtn}
+            onPress={() => router.push('/(app)/profile/personal-records')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.actionRowLeft}>
+              <View style={[styles.actionIconWrap, { backgroundColor: 'rgba(254,215,102,0.15)' }]}>
+                <Ionicons name="ribbon-outline" size={20} color={theme.colors.tertiary} />
+              </View>
+              <Text style={styles.actionRowText}>Personal Records (PRs)</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionRowBtn}
+            onPress={() => router.push('/(app)/profile/goals')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.actionRowLeft}>
+              <View style={[styles.actionIconWrap, { backgroundColor: 'rgba(42,183,202,0.15)' }]}>
+                <Ionicons name="flag-outline" size={20} color={theme.colors.secondary} />
+              </View>
+              <Text style={styles.actionRowText}>Training Goals</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionRowBtn}
+            onPress={() => router.push('/(app)/club')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.actionRowLeft}>
+              <View style={[styles.actionIconWrap, { backgroundColor: 'rgba(255,107,53,0.15)' }]}>
+                <Ionicons name="people-outline" size={20} color={theme.colors.primary} />
+              </View>
+              <Text style={styles.actionRowText}>Running Clubs</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionRowBtn}
+            onPress={() => router.push('/(app)/challenges')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.actionRowLeft}>
+              <View style={[styles.actionIconWrap, { backgroundColor: 'rgba(254,215,102,0.15)' }]}>
+                <Ionicons name="medal-outline" size={20} color={theme.colors.tertiary} />
+              </View>
+              <Text style={styles.actionRowText}>Challenges & Badges</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.actionRowBtn}
+            onPress={() => router.push('/(app)/settings/privacy-zones')}
+            activeOpacity={0.85}
+          >
+            <View style={styles.actionRowLeft}>
+              <View style={[styles.actionIconWrap, { backgroundColor: 'rgba(42,183,202,0.15)' }]}>
+                <Ionicons name="shield-checkmark-outline" size={20} color={theme.colors.secondary} />
+              </View>
+              <Text style={styles.actionRowText}>Privacy Zones</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={theme.colors.textMuted} />
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.actionRowBtn}
             onPress={() => router.push('/(app)/(tabs)/leaderboard')}

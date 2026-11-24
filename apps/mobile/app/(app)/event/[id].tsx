@@ -2,6 +2,7 @@ import {
   View, Text, StyleSheet, ScrollView, SafeAreaView, ActivityIndicator,
   Alert, Platform, Share, TextInput, TouchableOpacity, KeyboardAvoidingView, Linking, RefreshControl
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { eventService } from '../../../src/services/event.service';
@@ -524,6 +525,49 @@ export default function EventDetailScreen() {
             visible={showInviteModal}
             onClose={() => setShowInviteModal(false)}
           />
+
+          {/* ── Community QR Check-in & Results ── */}
+          <View style={{ flexDirection: 'row', gap: 10, marginHorizontal: 16, marginVertical: 8 }}>
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                backgroundColor: 'rgba(255,107,53,0.15)',
+                borderWidth: 1,
+                borderColor: theme.colors.primary,
+                paddingVertical: 10,
+                borderRadius: 12,
+              }}
+              onPress={() => router.push(`/(app)/event/${event.id}/checkin` as any)}
+            >
+              <Ionicons name="qr-code-outline" size={16} color={theme.colors.primary} />
+              <Text style={{ color: theme.colors.primary, fontWeight: '700', fontSize: 12 }}>
+                {isOrganizer ? 'Show Check-in QR' : 'Check In'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 6,
+                backgroundColor: 'rgba(255,255,255,0.06)',
+                paddingVertical: 10,
+                borderRadius: 12,
+              }}
+              onPress={() => router.push(`/(app)/event/${event.id}/results` as any)}
+            >
+              <Ionicons name="trophy-outline" size={16} color={theme.colors.tertiary} />
+              <Text style={{ color: theme.colors.text, fontWeight: '700', fontSize: 12 }}>
+                Results
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           {/* ── Like Event ── */}
           <TouchableOpacity

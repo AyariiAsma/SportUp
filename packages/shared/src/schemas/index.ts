@@ -161,4 +161,12 @@ export type UpdatePostInput = z.infer<typeof updatePostSchema>;
 export type CreateCommentInput = z.infer<typeof createCommentSchema>;
 export type CreateReportInput = z.infer<typeof createReportSchema>;
 
+export * from './activity.schema';
+export * from './segment.schema';
+export * from './analytics.schema';
+export * from './club.schema';
+export * from './challenge.schema';
+export * from './privacy.schema';
+export * from './eventExt.schema';
+
 export { RunningLevel };

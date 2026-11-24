@@ -1,0 +1,62 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "retry": "Retry",
+    "loading": "Loading...",
+    "km": "km",
+    "min": "min",
+    "sec": "sec"
+  },
+  "nav": {
+    "home": "Home",
+    "explore": "Explore",
+    "feed": "Feed",
+    "runs": "My Runs",
+    "ranking": "Ranking",
+    "profile": "Profile"
+  },
+  "tracking": {
+    "start": "Start Run",
+    "pause": "Pause",
+    "resume": "Resume",
+    "finish": "Finish",
+    "discard": "Discard",
+    "distance": "Distance",
+    "time": "Time",
+    "pace": "Pace",
+    "speed": "Speed",
+    "elevation": "Elevation",
+    "calories": "Calories",
+    "splits": "Splits",
+    "autoPaused": "Auto-Paused",
+    "poorGps": "Poor GPS Signal",
+    "saveTitle": "Save Activity",
+    "activityTitle": "Activity Title",
+    "visibility": "Visibility",
+    "everyone": "Everyone",
+    "followers": "Followers Only",
+    "onlyMe": "Only Me"
+  },
+  "social": {
+    "kudos": "Kudos",
+    "giveKudos": "Give Kudos",
+    "comments": "Comments",
+    "share": "Share Run",
+    "clubs": "Running Clubs",
+    "challenges": "Challenges"
+  },
+  "settings": {
+    "title": "Settings",
+    "preferences": "Preferences",
+    "units": "Units",
+    "metric": "Metric (km, m)",
+    "imperial": "Imperial (miles, ft)",
+    "language": "Language",
+    "notifications": "Notifications",
+    "privacyZones": "Privacy Zones",
+    "account": "Account",
+    "signOut": "Sign Out",
+    "deleteAccount": "Delete Account"
+  }
+}
