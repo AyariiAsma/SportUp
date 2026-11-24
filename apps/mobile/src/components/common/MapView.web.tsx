@@ -47,9 +47,9 @@ const MapView = ({ children, style, initialRegion, onPress, routeCoordinates = [
   return (
     <View style={[styles.container, style]}>
       <Text style={styles.title}>🗺️ Interactive Route Map (Web Mode)</Text>
-      
+
       {/* ── Simulated Map Grid ── */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.gridCanvas}
         activeOpacity={0.9}
         onPress={(e) => {
@@ -78,10 +78,10 @@ const MapView = ({ children, style, initialRegion, onPress, routeCoordinates = [
           if (topPercent < 0 || topPercent > 100 || leftPercent < 0 || leftPercent > 100) return null;
 
           return (
-            <View 
-              key={idx} 
+            <View
+              key={idx}
               style={[
-                styles.routePointNode, 
+                styles.routePointNode,
                 { top: `${topPercent}%`, left: `${leftPercent}%` }
               ]}
             >
@@ -92,7 +92,7 @@ const MapView = ({ children, style, initialRegion, onPress, routeCoordinates = [
       </TouchableOpacity>
 
       <Text style={styles.hint}>💡 Click points inside the map to draw your route path</Text>
-      
+
       <View style={styles.coordDisplay}>
         <Text style={styles.coordText}>📌 Start: {lat.toFixed(5)}, {lng.toFixed(5)}</Text>
         {routeCoordinates.length > 0 && (
